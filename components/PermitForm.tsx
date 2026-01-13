@@ -35,7 +35,8 @@ export const PermitForm: React.FC<PermitFormProps> = ({ initialData, onSubmit, o
     expiryDate: initialData?.expiryDate || '31 Dec 2024',
     ownerName: initialData?.ownerName || '',
     status: (initialData?.status || 'Active') as 'Active' | 'Expired' | 'Pending',
-    year: initialData?.year || new Date().getFullYear()
+    year: initialData?.year || new Date().getFullYear(),
+    permitTitle: initialData?.permitTitle || 'Official Rank Permit 2024'
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -56,6 +57,18 @@ export const PermitForm: React.FC<PermitFormProps> = ({ initialData, onSubmit, o
 
       <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2 md:col-span-2">
+            <label className="text-sm font-semibold text-gray-700">Permit Display Title</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Official Rank Permit 2024"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+              value={formData.permitTitle}
+              onChange={(e) => setFormData({ ...formData, permitTitle: e.target.value })}
+            />
+          </div>
+
           <div className="space-y-2">
             <label className="text-sm font-semibold text-gray-700">Vehicle Registration Number</label>
             <input

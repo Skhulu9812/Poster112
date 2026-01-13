@@ -9,6 +9,7 @@ export interface Permit {
   ownerName: string;
   status: 'Active' | 'Expired' | 'Pending';
   year: number;
+  permitTitle: string;
 }
 
 export interface DashboardStats {

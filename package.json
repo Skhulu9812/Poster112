@@ -14,7 +14,9 @@
     "recharts": "2.15.0",
     "html2canvas": "1.4.1",
     "jspdf": "2.5.1",
-    "jsbarcode": "3.11.6"
+    "jspdf-autotable": "3.8.2",
+    "jsbarcode": "3.11.6",
+    "qrcode": "1.5.3"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
