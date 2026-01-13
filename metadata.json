@@ -1,0 +1,7 @@
+{
+  "name": "Taxipass Permit System",
+  "description": "A professional taxi rank permit management system featuring a high-quality dashboard and circular printable permits with QR verification.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
