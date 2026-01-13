@@ -1,21 +1,32 @@
 
 import React, { useState } from 'react';
+import { User } from '../types';
 
 interface LoginProps {
-  onLogin: (user: { name: string; email: string }) => void;
+  users: User[];
+  onLogin: (user: User) => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onLogin }) => {
+export const Login: React.FC<LoginProps> = ({ users, onLogin }) => {
   const [email, setEmail] = useState('admin@taxipass.co');
   const [password, setPassword] = useState('password');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
+    
     // Simulate API delay
     setTimeout(() => {
-      onLogin({ name: 'Admin User', email });
+      const foundUser = users.find(u => u.email === email && u.status === 'Active');
+      // Changed: check against user.password instead of hardcoded 'password'
+      if (foundUser && password === foundUser.password) {
+        onLogin(foundUser);
+      } else {
+        setError('Invalid credentials or account inactive.');
+      }
       setIsLoading(false);
     }, 800);
   };
@@ -37,6 +48,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         </div>
         
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-xs font-bold rounded-lg text-center animate-shake">
+              {error}
+            </div>
+          )}
+
           <div className="space-y-2">
             <label className="text-sm font-semibold text-slate-700">Email Address</label>
             <div className="relative">

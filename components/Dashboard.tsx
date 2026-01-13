@@ -12,6 +12,9 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ permits, onIssueNew }) => {
   const [isExporting, setIsExporting] = useState(false);
+  const [exportStartDate, setExportStartDate] = useState('');
+  const [exportEndDate, setExportEndDate] = useState('');
+
   const activeCount = permits.filter(p => p.status === 'Active').length;
   const expiredCount = permits.filter(p => p.status === 'Expired').length;
   const pendingCount = permits.filter(p => p.status === 'Pending').length;
@@ -41,6 +44,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ permits, onIssueNew }) => 
   const handleExportLogs = async () => {
     try {
       setIsExporting(true);
+      
+      // Filter permits based on date range
+      const filteredPermits = permits.filter(p => {
+        if (!exportStartDate && !exportEndDate) return true;
+        
+        const issueDate = new Date(p.dateIssued);
+        const start = exportStartDate ? new Date(exportStartDate) : new Date(0);
+        const end = exportEndDate ? new Date(exportEndDate) : new Date();
+        
+        // Adjust end date to the end of that day
+        end.setHours(23, 59, 59, 999);
+        
+        return issueDate >= start && issueDate <= end;
+      });
+
+      if (filteredPermits.length === 0) {
+        alert('No records found for the selected date range.');
+        setIsExporting(false);
+        return;
+      }
+
       const doc = new jsPDF();
       
       // Header
@@ -52,14 +76,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ permits, onIssueNew }) => 
       doc.setTextColor(100, 116, 139); // slate-500
       const dateStr = new Date().toLocaleString();
       doc.text(`Generated on: ${dateStr}`, 14, 30);
-      doc.text(`Total Records: ${permits.length}`, 14, 35);
+      
+      if (exportStartDate || exportEndDate) {
+        const rangeText = `Date Range: ${exportStartDate || 'Beginning'} to ${exportEndDate || 'Today'}`;
+        doc.text(rangeText, 14, 35);
+      } else {
+        doc.text('Date Range: All Time', 14, 35);
+      }
+      
+      doc.text(`Records Found: ${filteredPermits.length}`, 14, 40);
       
       // Horizontal Line
       doc.setDrawColor(226, 232, 240);
-      doc.line(14, 40, 196, 40);
+      doc.line(14, 45, 196, 45);
 
       // Table Data
-      const tableRows = permits.map(p => [
+      const tableRows = filteredPermits.map(p => [
         p.regNo,
         p.ownerName,
         p.association,
@@ -72,7 +104,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ permits, onIssueNew }) => 
       autoTable(doc, {
         head: [['Reg No', 'Owner', 'Association', 'Vehicle', 'Issued', 'Expires', 'Status']],
         body: tableRows,
-        startY: 45,
+        startY: 50,
         theme: 'striped',
         headStyles: {
           fillColor: [15, 23, 42],
@@ -103,7 +135,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ permits, onIssueNew }) => 
         }
       });
 
-      doc.save(`Taxipass_Registry_Logs_${new Date().getTime()}.pdf`);
+      const fileName = `Taxipass_Registry_${exportStartDate || 'all'}_to_${exportEndDate || 'now'}.pdf`;
+      doc.save(fileName);
     } catch (error) {
       console.error('Failed to export PDF:', error);
       alert('Error generating log report.');
@@ -114,16 +147,48 @@ export const Dashboard: React.FC<DashboardProps> = ({ permits, onIssueNew }) => 
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">Executive Dashboard</h1>
           <p className="text-slate-500 text-sm">Real-time taxi permit metrics and registry oversight.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Date Range Selection for Export */}
+          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm transition-all hover:border-blue-200">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">From</span>
+              <input 
+                type="date" 
+                className="text-xs font-bold text-slate-700 bg-transparent outline-none cursor-pointer focus:text-blue-600"
+                value={exportStartDate}
+                onChange={(e) => setExportStartDate(e.target.value)}
+              />
+            </div>
+            <div className="w-[1px] h-4 bg-slate-200"></div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">To</span>
+              <input 
+                type="date" 
+                className="text-xs font-bold text-slate-700 bg-transparent outline-none cursor-pointer focus:text-blue-600"
+                value={exportEndDate}
+                onChange={(e) => setExportEndDate(e.target.value)}
+              />
+            </div>
+            {(exportStartDate || exportEndDate) && (
+              <button 
+                onClick={() => { setExportStartDate(''); setExportEndDate(''); }}
+                className="p-1 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600"
+                title="Reset range"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+            )}
+          </div>
+
           <button 
             onClick={handleExportLogs}
             disabled={isExporting}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm transition-all disabled:opacity-50 active:scale-95"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm transition-all disabled:opacity-50 active:scale-95 group"
           >
             {isExporting ? (
               <svg className="animate-spin h-4 w-4 text-slate-700" fill="none" viewBox="0 0 24 24">
@@ -131,11 +196,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ permits, onIssueNew }) => 
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
             ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              <svg className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             )}
-            {isExporting ? 'Generating...' : 'Export Logs'}
+            {isExporting ? 'Generating...' : 'Export PDF Logs'}
           </button>
-          <button onClick={onIssueNew} className="flex items-center gap-2 px-6 py-2 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
+          
+          <button onClick={onIssueNew} className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             Issue New Permit
           </button>
