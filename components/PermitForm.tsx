@@ -4,7 +4,8 @@ import { Permit } from '../types';
 
 interface PermitFormProps {
   initialData?: Permit;
-  onSubmit: (data: Omit<Permit, 'id'>) => void;
+  // Fix: The form does not handle the 'issuedBy' field, which is set by the system/currentUser in App.tsx.
+  onSubmit: (data: Omit<Permit, 'id' | 'issuedBy'>) => void;
   onCancel: () => void;
 }
 
@@ -41,6 +42,7 @@ export const PermitForm: React.FC<PermitFormProps> = ({ initialData, onSubmit, o
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Fix: Passing inferred formData which matches Omit<Permit, 'id' | 'issuedBy'>
     onSubmit(formData);
   };
 

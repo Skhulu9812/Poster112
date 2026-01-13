@@ -5,10 +5,11 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  password: string; // Added password field
+  password: string;
   role: UserRole;
   status: 'Active' | 'Inactive';
   lastLogin?: string;
+  passwordLastChanged: string; // ISO date string
 }
 
 export interface Permit {
@@ -22,6 +23,7 @@ export interface Permit {
   status: 'Active' | 'Expired' | 'Pending';
   year: number;
   permitTitle: string;
+  issuedBy: string; // User ID
 }
 
 export interface ActivityLog {

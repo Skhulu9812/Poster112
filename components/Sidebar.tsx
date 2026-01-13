@@ -34,7 +34,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, onLogout
       </div>
       
       <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
-        <p className="px-4 text-[10px] font-black text-slate-600 uppercase tracking-widest mb-4">Main Menu</p>
+        <div className="flex items-center justify-between px-4 mb-4">
+           <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Main Menu</p>
+           <div className="flex items-center gap-1.5">
+             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+             <span className="text-[8px] font-black text-slate-600 uppercase tracking-tighter">Live</span>
+           </div>
+        </div>
+        
         {visibleItems.map((item) => (
           <button
             key={item.id}

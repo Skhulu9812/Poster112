@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Permit, UserRole } from '../types';
+import { Permit, User } from '../types';
 
 interface PermitListProps {
   permits: Permit[];
@@ -10,14 +10,16 @@ interface PermitListProps {
   onBulkDelete?: (ids: string[]) => void;
   searchTerm?: string;
   onSearchChange?: (val: string) => void;
-  userRole: UserRole;
+  currentUser: User;
 }
 
 export const PermitList: React.FC<PermitListProps> = ({ 
-  permits, onEdit, onPrint, onDelete, onBulkDelete, searchTerm, onSearchChange, userRole 
+  permits, onEdit, onPrint, onDelete, onBulkDelete, searchTerm, onSearchChange, currentUser 
 }) => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Expired' | 'Pending'>('All');
+
+  const userRole = currentUser.role;
 
   const isExpiringSoon = (dateStr: string) => {
     try {
@@ -136,9 +138,10 @@ export const PermitList: React.FC<PermitListProps> = ({
                   <th className="px-6 py-5 text-left">
                     <input 
                       type="checkbox" 
-                      className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer disabled:opacity-30"
                       checked={selectedIds.length === filteredByStatus.length && filteredByStatus.length > 0}
                       onChange={toggleSelectAll}
+                      disabled={userRole !== 'Super Admin'}
                     />
                   </th>
                   <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Vehicle Identity</th>
@@ -153,15 +156,18 @@ export const PermitList: React.FC<PermitListProps> = ({
                   const expiringSoon = isExpiringSoon(permit.expiryDate);
                   const expired = isExpired(permit.expiryDate);
                   const isSelected = selectedIds.includes(permit.id);
+                  const canEdit = userRole === 'Super Admin' || (userRole === 'Officer' && permit.issuedBy === currentUser.id);
+                  const canDelete = userRole === 'Super Admin';
 
                   return (
                     <tr key={permit.id} className={`group hover:bg-slate-50/50 transition-all duration-200 ${isSelected ? 'bg-blue-50/40' : ''}`}>
                       <td className="px-6 py-5">
                         <input 
                           type="checkbox" 
-                          className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer disabled:opacity-30"
                           checked={isSelected}
                           onChange={() => toggleSelect(permit.id)}
+                          disabled={userRole !== 'Super Admin'}
                         />
                       </td>
                       <td className="px-6 py-5">
@@ -173,7 +179,12 @@ export const PermitList: React.FC<PermitListProps> = ({
                           </div>
                           <div>
                             <div className="text-base font-black text-slate-900 tracking-tight">{permit.regNo}</div>
-                            <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-0.5">{permit.association}</div>
+                            <div className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-0.5">
+                              {permit.association}
+                              {permit.issuedBy === currentUser.id && (
+                                <span className="ml-2 text-blue-600 font-black">• MINE</span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -208,7 +219,7 @@ export const PermitList: React.FC<PermitListProps> = ({
                         </span>
                       </td>
                       <td className="px-6 py-5 text-right">
-                        <div className="flex justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex justify-end gap-1.5 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                           <button 
                             onClick={() => onPrint(permit)}
                             className="w-10 h-10 bg-slate-900 text-white hover:bg-blue-600 rounded-xl transition-all flex items-center justify-center shadow-lg hover:shadow-blue-500/30"
@@ -216,7 +227,7 @@ export const PermitList: React.FC<PermitListProps> = ({
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" strokeWidth="2.5" /></svg>
                           </button>
-                          {(userRole === 'Super Admin' || userRole === 'Officer') && (
+                          {canEdit && (
                             <button 
                               onClick={() => onEdit(permit)}
                               className="w-10 h-10 bg-white text-slate-400 hover:text-slate-900 border border-slate-200 hover:border-slate-400 rounded-xl transition-all flex items-center justify-center shadow-sm"
@@ -225,7 +236,7 @@ export const PermitList: React.FC<PermitListProps> = ({
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" strokeWidth="2.5" /></svg>
                             </button>
                           )}
-                          {userRole === 'Super Admin' && (
+                          {canDelete && (
                             <button 
                               onClick={() => onDelete(permit.id)}
                               className="w-10 h-10 bg-white text-slate-400 hover:text-red-600 border border-slate-200 hover:border-red-200 rounded-xl transition-all flex items-center justify-center shadow-sm"
