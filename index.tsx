@@ -3,8 +3,14 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
+// Global error handler to help catch initialization issues in production
+window.addEventListener('error', (event) => {
+  console.error('Global application error:', event.error);
+});
+
 const rootElement = document.getElementById('root');
 if (!rootElement) {
+  console.error("Critical Error: Could not find root element to mount to");
   throw new Error("Could not find root element to mount to");
 }
 

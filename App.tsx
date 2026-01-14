@@ -19,8 +19,13 @@ const App: React.FC = () => {
   const [isDbLoaded, setIsDbLoaded] = useState(false);
   const [dbError, setDbError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem(SESSION_KEY);
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem(SESSION_KEY);
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) {
+      console.error("Failed to parse session", e);
+      return null;
+    }
   });
 
   const [users, setUsers] = useState<User[]>([]);
@@ -36,26 +41,36 @@ const App: React.FC = () => {
   const generateId = () => Math.random().toString(36).substring(2, 11);
 
   const fetchData = async () => {
+    setIsDbLoaded(false);
     try {
       setDbError(null);
-      const usersRes = await supabase.from('users').select('*');
-      const permitsRes = await supabase.from('permits').select('*');
-      const logsRes = await supabase.from('activity_logs').select('*').order('timestamp', { ascending: false });
+      
+      // Perform fetches with timeout or better error tracking
+      const [usersRes, permitsRes, logsRes] = await Promise.all([
+        supabase.from('users').select('*'),
+        supabase.from('permits').select('*'),
+        supabase.from('activity_logs').select('*').order('timestamp', { ascending: false })
+      ]);
 
-      if (usersRes.error) throw new Error(`Users table error: ${usersRes.error.message}`);
-      if (permitsRes.error) throw new Error(`Permits table error: ${permitsRes.error.message}`);
-      if (logsRes.error) throw new Error(`Logs table error: ${logsRes.error.message}`);
+      if (usersRes.error) throw new Error(`Users Sync Failed: ${usersRes.error.message}`);
+      if (permitsRes.error) throw new Error(`Permits Sync Failed: ${permitsRes.error.message}`);
+      if (logsRes.error) throw new Error(`Logs Sync Failed: ${logsRes.error.message}`);
 
       setUsers(usersRes.data || []);
       setPermits(permitsRes.data || []);
       setActivityLogs(logsRes.data || []);
       setIsDbLoaded(true);
     } catch (err: any) {
-      setDbError(err.message || "Unknown database error");
+      console.error("Fetch data error:", err);
+      setDbError(err.message || "Unknown database error. Please check your Supabase connection.");
+      // Even if it fails, we want to stop the infinite spinner after an error is set
+      setIsDbLoaded(false); 
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { 
+    fetchData(); 
+  }, []);
 
   useEffect(() => {
     if (currentUser) {
@@ -74,8 +89,12 @@ const App: React.FC = () => {
       details,
       type
     };
-    await supabase.from('activity_logs').insert([newLog]);
-    setActivityLogs(prev => [newLog, ...prev]);
+    try {
+      await supabase.from('activity_logs').insert([newLog]);
+      setActivityLogs(prev => [newLog, ...prev]);
+    } catch (e) {
+      console.error("Logging failed", e);
+    }
   };
 
   const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
@@ -118,9 +137,7 @@ const App: React.FC = () => {
   };
 
   const handleEditPermit = async (updatedPermit: Permit) => {
-    // Admins and Officers can edit any record
     const canEdit = currentUser?.role === 'Super Admin' || currentUser?.role === 'Officer';
-    
     if (!canEdit) {
       showNotification('Access Denied: Insufficient permissions to edit records.', 'error');
       return;
@@ -136,15 +153,11 @@ const App: React.FC = () => {
   const handleDeletePermit = async (id: string) => {
     const permit = permits.find(p => p.id === id);
     if (!permit) return;
-    
-    // Super Admin and Officer can delete any permit
     const canDelete = currentUser?.role === 'Super Admin' || currentUser?.role === 'Officer';
-    
     if (!canDelete) {
       showNotification('Access Denied: You do not have permission to delete this record.', 'error');
       return;
     }
-
     if (confirm(`Are you sure you want to PERMANENTLY delete permit ${permit.regNo}?`)) {
       const { error } = await supabase.from('permits').delete().eq('id', id);
       if (error) { showNotification(`Deletion failed: ${error.message}`, "error"); return; }
@@ -159,7 +172,6 @@ const App: React.FC = () => {
       showNotification('Access Denied: You do not have permission to delete these records.', 'error');
       return;
     }
-
     if (confirm(`Are you sure you want to delete ${ids.length} selected permits?`)) {
       const { error } = await supabase.from('permits').delete().in('id', ids);
       if (error) { showNotification(`Bulk delete failed: ${error.message}`, "error"); return; }
@@ -192,7 +204,6 @@ const App: React.FC = () => {
   const handleDeleteUser = async (id: string) => {
     if (currentUser?.id === id) { showNotification('Cannot delete your own account', 'error'); return; }
     if (currentUser?.role !== 'Super Admin') { showNotification('Only Super Admins can manage users.', 'error'); return; }
-    
     const userToDelete = users.find(u => u.id === id);
     if (userToDelete && confirm(`Delete user ${userToDelete.name}?`)) {
       const { error } = await supabase.from('users').delete().eq('id', id);
@@ -264,8 +275,9 @@ const App: React.FC = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       {isMobileMenuOpen && <div className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>}
+      
       {notification && (
-        <div className={`fixed top-6 right-6 z-50 flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border transition-all animate-in slide-in-from-top-4 duration-300 ${
+        <div className={`fixed top-6 right-6 z-[100] flex items-center gap-3 px-6 py-4 rounded-2xl shadow-2xl border transition-all animate-in slide-in-from-top-4 duration-300 ${
           notification.type === 'success' ? 'bg-green-50 border-green-100 text-green-800' :
           notification.type === 'error' ? 'bg-red-50 border-red-100 text-red-800' : 'bg-blue-50 border-blue-100 text-blue-800'
         }`}>
@@ -273,6 +285,7 @@ const App: React.FC = () => {
           <span className="font-bold text-sm">{notification.message}</span>
         </div>
       )}
+
       {view !== 'force-password-change' && (
         <Sidebar 
           currentView={view} 
@@ -296,14 +309,21 @@ const App: React.FC = () => {
         <main className="flex-1 overflow-y-auto p-4 sm:p-8">
           <div className="max-w-7xl mx-auto">
             {!isDbLoaded && !dbError && (
-               <div className="flex items-center justify-center h-64">
+               <div className="flex flex-col items-center justify-center h-64 gap-4">
                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                 <p className="text-sm font-bold text-slate-400 animate-pulse">Synchronizing Registry...</p>
                </div>
             )}
             {dbError && (
-              <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl mb-6 flex items-center justify-between">
-                <span>Database Connection Error: {dbError}</span>
-                <button onClick={fetchData} className="px-4 py-2 bg-red-100 hover:bg-red-200 rounded-lg font-bold text-sm transition-colors">Retry</button>
+              <div className="bg-white border border-red-100 p-8 rounded-[2rem] shadow-xl text-center max-w-lg mx-auto mt-12">
+                <div className="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 mx-auto mb-6">
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" strokeWidth="2.5" /></svg>
+                </div>
+                <h3 className="text-xl font-black text-slate-900 mb-2">Sync Error</h3>
+                <p className="text-slate-500 text-sm mb-8 leading-relaxed">{dbError}</p>
+                <button onClick={fetchData} className="w-full px-6 py-4 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black transition-all shadow-lg active:scale-95">
+                  Retry Connection
+                </button>
               </div>
             )}
             {isDbLoaded && renderContent()}
