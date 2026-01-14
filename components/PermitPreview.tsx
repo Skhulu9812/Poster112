@@ -141,16 +141,7 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
                    {/* displayValue set to false to remove registration under barcode */}
                    <Barcode value={barcodeValue} width={1.8} height={50} displayValue={false} />
                 </div>
-                <span className="text-[8px] font-black text-slate-900 mt-2 uppercase tracking-[0.3em]">Official Scannable Permit</span>
              </div>
-          </div>
-
-          {/* Fine Print / Footer */}
-          <div className="absolute bottom-10 left-0 right-0 text-center">
-             <div className="w-[60%] h-[1px] bg-slate-100 mx-auto mb-3"></div>
-             <p className="text-[8px] font-mono text-slate-400 uppercase tracking-widest">
-               S/N: {permit.id.toUpperCase()}-{permit.year}-OFFICIAL
-             </p>
           </div>
 
           {/* Perforation Line */}
