@@ -89,7 +89,7 @@ export const PermitList: React.FC<PermitListProps> = ({
         </div>
       </div>
 
-      {selectedIds.length > 0 && userRole === 'Super Admin' && (
+      {selectedIds.length > 0 && userRole !== 'Auditor' && (
         <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-2xl animate-in slide-in-from-bottom-4">
           <div className="flex items-center gap-4">
             <span className="text-sm font-bold bg-blue-600 px-3 py-1 rounded-full">{selectedIds.length} Selected</span>
@@ -141,7 +141,7 @@ export const PermitList: React.FC<PermitListProps> = ({
                       className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer disabled:opacity-30"
                       checked={selectedIds.length === filteredByStatus.length && filteredByStatus.length > 0}
                       onChange={toggleSelectAll}
-                      disabled={userRole !== 'Super Admin'}
+                      disabled={userRole === 'Auditor'}
                     />
                   </th>
                   <th className="px-6 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Vehicle Identity</th>
@@ -157,7 +157,7 @@ export const PermitList: React.FC<PermitListProps> = ({
                   const expired = isExpired(permit.expiryDate);
                   const isSelected = selectedIds.includes(permit.id);
                   const canEdit = userRole === 'Super Admin' || (userRole === 'Officer' && permit.issuedBy === currentUser.id);
-                  const canDelete = userRole === 'Super Admin';
+                  const canDelete = userRole === 'Super Admin' || (userRole === 'Officer' && permit.issuedBy === currentUser.id);
 
                   return (
                     <tr key={permit.id} className={`group hover:bg-slate-50/50 transition-all duration-200 ${isSelected ? 'bg-blue-50/40' : ''}`}>
@@ -167,7 +167,7 @@ export const PermitList: React.FC<PermitListProps> = ({
                           className="w-5 h-5 rounded-lg border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer disabled:opacity-30"
                           checked={isSelected}
                           onChange={() => toggleSelect(permit.id)}
-                          disabled={userRole !== 'Super Admin'}
+                          disabled={userRole === 'Auditor'}
                         />
                       </td>
                       <td className="px-6 py-5">

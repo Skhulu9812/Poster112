@@ -2,13 +2,15 @@
 import React, { useState } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { ActivityLog } from '../types';
+import { ActivityLog, UserRole } from '../types';
 
 interface ActivityLogViewProps {
   logs: ActivityLog[];
+  onClearLogs?: () => void;
+  userRole: UserRole;
 }
 
-export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ logs }) => {
+export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ logs, onClearLogs, userRole }) => {
   const [exportStartDate, setExportStartDate] = useState('');
   const [exportEndDate, setExportEndDate] = useState('');
   const [isExporting, setIsExporting] = useState(false);
@@ -27,8 +29,6 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ logs }) => {
   const filteredLogs = logs.filter(log => {
     if (!exportStartDate && !exportEndDate) return true;
     
-    // ActivityLog timestamps are currently localized strings, e.g., "12/01/2024, 10:30:00"
-    // To filter accurately, we convert the log timestamp string back to a Date object.
     const logDate = new Date(log.timestamp);
     const start = exportStartDate ? new Date(exportStartDate) : new Date(0);
     const end = exportEndDate ? new Date(exportEndDate) : new Date();
@@ -81,7 +81,6 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ logs }) => {
   };
 
   const handleExportExcel = () => {
-    // Generate CSV (Excel compatible)
     const headers = ['Timestamp', 'Action', 'Type', 'User', 'Details'];
     const rows = filteredLogs.map(log => [
       `"${log.timestamp}"`,
@@ -112,6 +111,17 @@ export const ActivityLogView: React.FC<ActivityLogViewProps> = ({ logs }) => {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          {/* Admin Destructive Action */}
+          {userRole === 'Super Admin' && (
+            <button 
+              onClick={onClearLogs}
+              className="flex items-center gap-2 px-6 py-2.5 text-xs font-black text-white bg-red-600 rounded-xl hover:bg-red-700 shadow-lg shadow-red-600/20 transition-all uppercase tracking-widest active:scale-95"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeWidth="2.5" /></svg>
+              Clear Audit Trail
+            </button>
+          )}
+
           {/* Date Filters */}
           <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm transition-all hover:border-blue-200">
             <div className="flex items-center gap-2">

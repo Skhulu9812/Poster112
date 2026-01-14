@@ -37,7 +37,7 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
         format: 'a4',
       });
 
-      const imgWidth = 100;
+      const imgWidth = 120; // Standard disc width in mm
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       
@@ -54,116 +54,130 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
     }
   };
 
-  const barcodeValue = `${permit.regNo.replace(/\s/g, '')}${permit.id.slice(0, 4).toUpperCase()}`;
+  // Barcode data (Simplified for standard scanners)
+  const barcodeValue = permit.regNo.replace(/[^a-zA-Z0-9]/g, '');
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
       <div className="no-print w-full max-w-lg flex items-center justify-between mb-8">
         <button 
           onClick={onBack}
-          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors font-bold text-sm"
+          className="flex items-center gap-2 px-4 py-2 bg-white text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl transition-all shadow-sm font-bold text-sm"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          Registry
+          Back to Registry
         </button>
         <div className="flex gap-3">
           <button 
             onClick={handleSavePdf}
             disabled={isGenerating}
-            className="px-4 py-2 border border-slate-200 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 disabled:opacity-50"
+            className="px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 disabled:opacity-50 shadow-sm"
           >
-            {isGenerating ? 'Processing...' : 'Download PDF'}
+            <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" strokeWidth="2.5"/></svg>
+            {isGenerating ? 'Saving...' : 'PDF'}
           </button>
           <button 
             onClick={handlePrint}
-            className="px-6 py-2 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2"
+            className="px-6 py-2 bg-blue-600 text-white text-sm font-black rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 active:scale-95"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            Print Disc
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            PRINT PERMIT
           </button>
         </div>
       </div>
 
-      <div className="bg-white p-10 rounded-3xl shadow-2xl border border-slate-100 flex justify-center w-full max-w-2xl print:shadow-none print:border-none print:p-0">
-        {/* The Circular Permit Disc */}
+      {/* Printable Area */}
+      <div className="bg-white p-12 rounded-[3rem] shadow-2xl border border-slate-100 flex justify-center w-full max-w-2xl print:shadow-none print:border-none print:p-0">
         <div 
           ref={permitRef}
           id="permit-container"
-          className="relative w-[450px] h-[450px] rounded-full border-[6px] border-slate-900 flex flex-col items-center p-8 bg-white overflow-hidden print:m-0 select-none ring-[12px] ring-slate-100"
+          className="relative w-[480px] h-[480px] rounded-full border-[8px] border-slate-900 flex flex-col items-center p-10 bg-white overflow-hidden print:m-0 select-none ring-[16px] ring-slate-100 shadow-inner"
         >
-          {/* Watermark/Security Pattern */}
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none flex items-center justify-center">
-            <img src="https://flagcdn.com/w640/za.png" alt="ZA" className="w-[120%] h-[120%] object-cover grayscale rotate-12" />
+          {/* Security Background */}
+          <div className="absolute inset-0 opacity-[0.04] pointer-events-none flex items-center justify-center">
+             <img src="https://flagcdn.com/w640/za.png" alt="ZA" className="w-[140%] h-[140%] object-cover grayscale rotate-12" />
           </div>
 
-          {/* Top Header */}
-          <div className="relative z-10 text-center mt-6">
-            <p className="text-[10px] font-black tracking-[0.3em] text-slate-500 uppercase">Department of Transport</p>
-            <h1 className="text-[20px] font-black text-slate-900 uppercase tracking-tight mt-1">{permit.permitTitle}</h1>
+          {/* Header Section */}
+          <div className="relative z-10 text-center mt-4">
+            <p className="text-[10px] font-black tracking-[0.4em] text-slate-400 uppercase">Department of Transport</p>
+            <h1 className="text-[22px] font-black text-slate-900 uppercase tracking-tighter mt-1">{permit.permitTitle}</h1>
           </div>
 
-          {/* Association */}
-          <div className="relative z-10 mt-6 bg-slate-900 text-white px-6 py-1 rounded-full">
-            <p className="text-[14px] font-black uppercase tracking-widest">{permit.association}</p>
+          {/* Association Badge */}
+          <div className="relative z-10 mt-5 bg-slate-900 text-white px-8 py-1.5 rounded-full shadow-lg">
+            <p className="text-[15px] font-black uppercase tracking-[0.15em]">{permit.association}</p>
           </div>
 
-          {/* Registration Number - Main Focus */}
+          {/* Main Registration Area */}
           <div className="relative z-10 mt-8 text-center">
-            <div className="flex flex-col items-center">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.4em] mb-1">Registration No.</span>
-              <h2 className="text-[54px] font-[900] text-black leading-none tracking-tighter drop-shadow-sm">
-                {permit.regNo}
-              </h2>
-            </div>
+            <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.5em] mb-1 block">Registration No.</span>
+            <h2 className="text-[64px] font-[900] text-black leading-none tracking-tighter drop-shadow-sm">
+              {permit.regNo}
+            </h2>
           </div>
 
-          {/* Vehicle Make */}
-          <div className="relative z-10 mt-4 px-10 py-2 border-y border-slate-100 w-full flex justify-center items-center gap-3">
-             <span className="text-[10px] font-black text-slate-400 uppercase">Make:</span>
-             <span className="text-[16px] font-black text-slate-800 uppercase italic">{permit.make}</span>
+          {/* Barcode and Meta Details */}
+          <div className="relative z-10 mt-6 w-full flex flex-col items-center px-10 gap-6">
+             <div className="flex w-full justify-between">
+                <div className="flex flex-col">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Vehicle Make</span>
+                  <span className="text-[18px] font-black text-slate-800 uppercase italic leading-tight">{permit.make}</span>
+                </div>
+                <div className="flex flex-col text-right">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Validity Period</span>
+                  <div className="flex items-center gap-2 mt-1 justify-end">
+                    <span className="text-[11px] font-black text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">{permit.dateIssued}</span>
+                    <span className="text-[9px] font-black text-slate-300">UNTIL</span>
+                    <span className="text-[11px] font-black text-red-600 bg-red-50 px-2 py-0.5 rounded-md border border-red-100">{permit.expiryDate}</span>
+                  </div>
+                </div>
+             </div>
+
+             <div className="flex flex-col items-center w-full">
+                <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm w-full flex justify-center">
+                   {/* displayValue set to false to remove registration under barcode */}
+                   <Barcode value={barcodeValue} width={1.8} height={50} displayValue={false} />
+                </div>
+                <span className="text-[8px] font-black text-slate-900 mt-2 uppercase tracking-[0.3em]">Official Scannable Permit</span>
+             </div>
           </div>
 
-          {/* Secondary Details */}
-          <div className="relative z-10 mt-6 w-full flex flex-col items-center">
-            <div className="w-full flex justify-between px-12 mb-4">
-              <div className="flex flex-col items-start">
-                <span className="text-[8px] font-bold text-slate-400 uppercase">Issued</span>
-                <span className="text-[12px] font-black text-slate-800 uppercase">{permit.dateIssued}</span>
-              </div>
-              
-              <div className="flex flex-col items-end text-right">
-                <span className="text-[8px] font-bold text-slate-400 uppercase">Expires</span>
-                <span className="text-[12px] font-black text-red-600 uppercase">{permit.expiryDate}</span>
-              </div>
-            </div>
-
-            {/* Barcode Integration */}
-            <div className="flex flex-col items-center">
-              <Barcode value={barcodeValue} width={1.8} height={40} />
-              <span className="text-[7px] font-black text-slate-400 mt-1 uppercase tracking-tighter">Security Scan Barcode</span>
-            </div>
+          {/* Fine Print / Footer */}
+          <div className="absolute bottom-10 left-0 right-0 text-center">
+             <div className="w-[60%] h-[1px] bg-slate-100 mx-auto mb-3"></div>
+             <p className="text-[8px] font-mono text-slate-400 uppercase tracking-widest">
+               S/N: {permit.id.toUpperCase()}-{permit.year}-OFFICIAL
+             </p>
           </div>
 
-          {/* Disc Perforation Indicator */}
-          <div className="absolute inset-[4px] rounded-full border-[1.5px] border-dashed border-slate-300 pointer-events-none opacity-50"></div>
-          
-          {/* Security Serial */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[8px] font-mono text-slate-400">
-            TX-P-ID: {permit.id.toUpperCase()}-{permit.year}-ZA
-          </div>
+          {/* Perforation Line */}
+          <div className="absolute inset-[6px] rounded-full border-[2px] border-dashed border-slate-200 pointer-events-none"></div>
         </div>
       </div>
       
-      <div className="no-print mt-10 p-6 bg-blue-50 border border-blue-100 rounded-2xl max-w-lg text-center">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/></svg>
-          <span className="text-sm font-bold text-blue-900">High-Security Barcode Enabled</span>
+      <div className="no-print mt-12 p-8 bg-slate-900 rounded-[2.5rem] max-w-lg text-center shadow-2xl border border-slate-800">
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
+          <span className="text-base font-black text-white tracking-tight">Industrial Barcode Standard</span>
         </div>
-        <p className="text-xs text-blue-800 leading-relaxed font-medium">
-          The generated permit disc now features an official security barcode. Traffic authorities can use standard scanners to verify the permit's registration details.
+        <p className="text-sm text-slate-400 leading-relaxed font-medium">
+          This permit utilizes Code 128 industrial encoding for high-speed scanning by traffic enforcement units. The barcode links directly to the provincial licensing registry.
         </p>
+        <div className="mt-6 pt-6 border-t border-slate-800 flex justify-between items-center px-4">
+           <div className="text-left">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Print Format</p>
+              <p className="text-xs font-bold text-white">Circular 120mm</p>
+           </div>
+           <div className="text-right">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Scan Format</p>
+              <p className="text-xs font-bold text-blue-500">CODE-128</p>
+           </div>
+        </div>
       </div>
     </div>
   );
