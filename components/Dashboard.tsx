@@ -1,330 +1,143 @@
 
-import React, { useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { Permit } from '../types';
+import React from 'react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Permit, ActivityLog } from '../types';
 
 interface DashboardProps {
   permits: Permit[];
+  activityLogs: ActivityLog[];
   onIssueNew?: () => void;
+  onViewRegistry?: () => void;
+  onViewLogs?: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ permits, onIssueNew }) => {
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportStartDate, setExportStartDate] = useState('');
-  const [exportEndDate, setExportEndDate] = useState('');
-
+export const Dashboard: React.FC<DashboardProps> = ({ 
+  permits, 
+  activityLogs,
+  onIssueNew, 
+  onViewRegistry,
+  onViewLogs 
+}) => {
   const activeCount = permits.filter(p => p.status === 'Active').length;
-  const expiredCount = permits.filter(p => p.status === 'Expired').length;
-  const pendingCount = permits.filter(p => p.status === 'Pending').length;
-
-  const monthlyData = [
-    { name: 'Jan', count: 12 },
-    { name: 'Feb', count: 19 },
-    { name: 'Mar', count: 15 },
-    { name: 'Apr', count: 22 },
-    { name: 'May', count: 30 },
-    { name: 'Jun', count: 28 },
-  ];
+  const complianceScore = permits.length > 0 ? Math.round((activeCount / permits.length) * 100) : 0;
 
   const statusData = [
-    { name: 'Active', value: activeCount, color: '#22c55e' },
-    { name: 'Expired', value: expiredCount, color: '#ef4444' },
-    { name: 'Pending', value: pendingCount, color: '#f59e0b' },
+    { name: 'Compliant', value: activeCount, color: '#059669' },
+    { name: 'Issues', value: permits.length - activeCount, color: '#f43f5e' },
   ];
 
-  const stats = [
-    { label: 'Total Registry', value: permits.length, change: '+12.5%', color: 'text-blue-600', bg: 'bg-blue-100', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
-    { label: 'Active Compliance', value: activeCount, change: '+5.4%', color: 'text-green-600', bg: 'bg-green-100', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-    { label: 'Revenue (ZAR)', value: `R ${(permits.length * 1500).toLocaleString()}`, change: '+R 4,500', color: 'text-indigo-600', bg: 'bg-indigo-100', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-    { label: 'Pending Approval', value: pendingCount, change: '-2', color: 'text-orange-600', bg: 'bg-orange-100', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+  const quickActions = [
+    { label: 'Issue Permit', icon: 'M12 4v16m8-8H4', onClick: onIssueNew, color: 'bg-emerald-600' },
+    { label: 'Fleet Audit', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', onClick: onViewRegistry, color: 'bg-slate-900' },
+    { label: 'Security Logs', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', onClick: onViewLogs, color: 'bg-blue-600' },
   ];
-
-  const handleExportLogs = async () => {
-    try {
-      setIsExporting(true);
-      
-      // Filter permits based on date range
-      const filteredPermits = permits.filter(p => {
-        if (!exportStartDate && !exportEndDate) return true;
-        
-        const issueDate = new Date(p.dateIssued);
-        const start = exportStartDate ? new Date(exportStartDate) : new Date(0);
-        const end = exportEndDate ? new Date(exportEndDate) : new Date();
-        
-        // Adjust end date to the end of that day
-        end.setHours(23, 59, 59, 999);
-        
-        return issueDate >= start && issueDate <= end;
-      });
-
-      if (filteredPermits.length === 0) {
-        alert('No records found for the selected date range.');
-        setIsExporting(false);
-        return;
-      }
-
-      const doc = new jsPDF();
-      
-      // Header
-      doc.setFontSize(20);
-      doc.setTextColor(15, 23, 42); // slate-900
-      doc.text('Taxipass Permit Registry Report', 14, 22);
-      
-      doc.setFontSize(10);
-      doc.setTextColor(100, 116, 139); // slate-500
-      const dateStr = new Date().toLocaleString();
-      doc.text(`Generated on: ${dateStr}`, 14, 30);
-      
-      if (exportStartDate || exportEndDate) {
-        const rangeText = `Date Range: ${exportStartDate || 'Beginning'} to ${exportEndDate || 'Today'}`;
-        doc.text(rangeText, 14, 35);
-      } else {
-        doc.text('Date Range: All Time', 14, 35);
-      }
-      
-      doc.text(`Records Found: ${filteredPermits.length}`, 14, 40);
-      
-      // Horizontal Line
-      doc.setDrawColor(226, 232, 240);
-      doc.line(14, 45, 196, 45);
-
-      // Table Data
-      const tableRows = filteredPermits.map(p => [
-        p.regNo,
-        p.ownerName,
-        p.association,
-        p.make,
-        p.dateIssued,
-        p.expiryDate,
-        p.status
-      ]);
-
-      autoTable(doc, {
-        head: [['Reg No', 'Owner', 'Association', 'Vehicle', 'Issued', 'Expires', 'Status']],
-        body: tableRows,
-        startY: 50,
-        theme: 'striped',
-        headStyles: {
-          fillColor: [15, 23, 42],
-          textColor: [255, 255, 255],
-          fontSize: 10,
-          fontStyle: 'bold',
-          halign: 'left'
-        },
-        bodyStyles: {
-          fontSize: 9,
-          textColor: [51, 65, 85]
-        },
-        alternateRowStyles: {
-          fillColor: [248, 250, 252]
-        },
-        columnStyles: {
-          6: { fontStyle: 'bold' } // Status column bold
-        },
-        didParseCell: (data) => {
-          if (data.section === 'body' && data.column.index === 6) {
-            const status = data.cell.raw;
-            if (status === 'Active') {
-              data.cell.styles.textColor = [22, 163, 74]; // green-600
-            } else if (status === 'Expired') {
-              data.cell.styles.textColor = [220, 38, 38]; // red-600
-            }
-          }
-        }
-      });
-
-      const fileName = `Taxipass_Registry_${exportStartDate || 'all'}_to_${exportEndDate || 'now'}.pdf`;
-      doc.save(fileName);
-    } catch (error) {
-      console.error('Failed to export PDF:', error);
-      alert('Error generating log report.');
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Executive Dashboard</h1>
-          <p className="text-slate-500 text-sm">Real-time taxi permit metrics and registry oversight.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Date Range Selection for Export */}
-          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm transition-all hover:border-blue-200">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">From</span>
-              <input 
-                type="date" 
-                className="text-xs font-bold text-slate-700 bg-transparent outline-none cursor-pointer focus:text-blue-600"
-                value={exportStartDate}
-                onChange={(e) => setExportStartDate(e.target.value)}
-              />
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Header & Quick Stats */}
+      <div className="flex flex-col xl:flex-row gap-6">
+        <div className="flex-1 bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col md:flex-row items-center gap-10">
+          <div className="relative w-48 h-48 shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={statusData} innerRadius={65} outerRadius={85} paddingAngle={5} dataKey="value" stroke="none">
+                  {statusData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-4xl font-[1000] text-umz-black leading-none">{complianceScore}%</span>
+              <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mt-1">Compliant</span>
             </div>
-            <div className="w-[1px] h-4 bg-slate-200"></div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest whitespace-nowrap">To</span>
-              <input 
-                type="date" 
-                className="text-xs font-bold text-slate-700 bg-transparent outline-none cursor-pointer focus:text-blue-600"
-                value={exportEndDate}
-                onChange={(e) => setExportEndDate(e.target.value)}
-              />
-            </div>
-            {(exportStartDate || exportEndDate) && (
-              <button 
-                onClick={() => { setExportStartDate(''); setExportEndDate(''); }}
-                className="p-1 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600"
-                title="Reset range"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-              </button>
-            )}
           </div>
-
-          <button 
-            onClick={handleExportLogs}
-            disabled={isExporting}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 shadow-sm transition-all disabled:opacity-50 active:scale-95 group"
-          >
-            {isExporting ? (
-              <svg className="animate-spin h-4 w-4 text-slate-700" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            ) : (
-              <svg className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            )}
-            {isExporting ? 'Generating...' : 'Export PDF Logs'}
-          </button>
-          
-          <button onClick={onIssueNew} className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            Issue New Permit
-          </button>
+          <div className="text-center md:text-left">
+            <h1 className="text-4xl font-[1000] text-umz-black tracking-tighter leading-tight">
+              Umzimkhulu Fleet <br/> Compliance Score
+            </h1>
+            <p className="text-slate-400 font-bold text-sm mt-3 leading-relaxed max-w-sm">
+              Real-time synchronization with the Department of Transport registry. Your current fleet health is {complianceScore < 70 ? 'below target' : 'optimal'}.
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, i) => (
-          <div key={i} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 rounded-xl ${stat.bg} ${stat.color}`}>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={stat.icon} />
-                </svg>
+        <div className="w-full xl:w-80 grid grid-cols-1 gap-4">
+          {quickActions.map((action, i) => (
+            <button 
+              key={i} 
+              onClick={action.onClick}
+              className={`${action.color} group relative overflow-hidden p-6 rounded-[2rem] text-left text-white shadow-lg transition-all hover:scale-[1.03] active:scale-95`}
+            >
+              <div className="relative z-10 flex items-center gap-4">
+                <div className="p-3 bg-white/20 rounded-2xl">
+                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d={action.icon} /></svg>
+                </div>
+                <span className="font-black text-sm uppercase tracking-widest">{action.label}</span>
               </div>
-              <span className={`text-xs font-bold px-2 py-1 rounded-full ${stat.change.startsWith('+') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                {stat.change}
-              </span>
-            </div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">{stat.label}</p>
-            <p className="text-2xl font-black text-slate-900 mt-1">{stat.value}</p>
-          </div>
-        ))}
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <svg className="w-20 h-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d={action.icon} /></svg>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-lg font-bold text-slate-900">Permit Issuance Velocity</h2>
-            <select className="text-xs font-bold bg-slate-50 border-none rounded-lg px-2 py-1 outline-none">
-              <option>Last 6 Months</option>
-              <option>Last Year</option>
-            </select>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Compliance History Chart */}
+        <div className="lg:col-span-2 bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm">
+          <div className="flex items-center justify-between mb-10">
+            <div>
+              <h2 className="text-xl font-[1000] text-umz-black tracking-tight">System Utilization</h2>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Issuance volume vs renewal rates</p>
+            </div>
           </div>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={monthlyData}>
+              <AreaChart data={[
+                { n: 'Jan', v: 45 }, { n: 'Feb', v: 52 }, { n: 'Mar', v: 48 }, 
+                { n: 'Apr', v: 61 }, { n: 'May', v: 55 }, { n: 'Jun', v: permits.length }
+              ]}>
                 <defs>
-                  <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  <linearGradient id="gradientGreen" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#047857" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#047857" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b', fontWeight: 600 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                  itemStyle={{ fontWeight: 700 }}
-                />
-                <Area type="monotone" dataKey="count" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorPv)" />
+                <XAxis dataKey="n" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
+                <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', background: '#020617', color: '#fff' }} />
+                <Area type="monotone" dataKey="v" stroke="#059669" strokeWidth={5} fill="url(#gradientGreen)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-          <h2 className="text-lg font-bold text-slate-900 mb-6">Status Composition</h2>
-          <div className="flex-1 min-h-[250px] relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={statusData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {statusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-center">
-                <p className="text-2xl font-black text-slate-900">{permits.length}</p>
-                <p className="text-[10px] font-bold text-slate-400 uppercase">Total</p>
-              </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-2 mt-4">
-            {statusData.map((s, i) => (
-              <div key={i} className="text-center">
-                <div className="text-xs font-bold text-slate-700">{s.name}</div>
-                <div className="w-full h-1 rounded-full mt-1" style={{ backgroundColor: s.color }}></div>
-                <div className="text-xs text-slate-400 mt-1">{s.value}</div>
+        {/* Recent Activity Mini-Feed */}
+        <div className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm flex flex-col">
+          <h2 className="text-xl font-[1000] text-umz-black tracking-tight mb-6">Live Activity</h2>
+          <div className="flex-1 space-y-6 overflow-hidden">
+            {activityLogs.slice(0, 5).map((log, i) => (
+              <div key={i} className="flex gap-4">
+                <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${
+                  log.type === 'delete' ? 'bg-rose-500' : 
+                  log.type === 'create' ? 'bg-emerald-500' : 'bg-blue-500'
+                }`}></div>
+                <div>
+                  <p className="text-xs font-black text-slate-900 leading-tight">{log.action}</p>
+                  <p className="text-[10px] font-medium text-slate-400 mt-0.5 line-clamp-1">{log.details}</p>
+                  <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mt-1">
+                    {new Date(log.timestamp).toLocaleTimeString()} • {log.user}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-900">Recent Registry Activity</h2>
-          <button className="text-sm font-bold text-blue-600 hover:text-blue-700">View All</button>
-        </div>
-        <div className="divide-y divide-slate-50">
-          {permits.slice(-4).reverse().map((p, i) => (
-            <div key={i} className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-900">{p.regNo}</p>
-                  <p className="text-xs text-slate-500">{p.ownerName} • {p.association}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${
-                  p.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                }`}>
-                  {p.status.toUpperCase()}
-                </span>
-                <p className="text-[10px] text-slate-400 mt-1">Issued {p.dateIssued}</p>
-              </div>
-            </div>
-          ))}
+          <button 
+            onClick={onViewLogs}
+            className="mt-8 w-full py-4 border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:border-emerald-200 hover:text-emerald-600 transition-all"
+          >
+            Full Audit Report
+          </button>
         </div>
       </div>
     </div>

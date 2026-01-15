@@ -24,6 +24,12 @@ export interface Permit {
   year: number;
   permitTitle: string;
   issuedBy: string; // User ID
+  // Branding & Design Customization
+  authorityName?: string;
+  authorityFontSize?: number;
+  authorityFontStyle?: 'normal' | 'italic' | 'bold' | 'bold-italic';
+  globalFontScale?: number;
+  permitFontStyle?: 'sans' | 'serif' | 'mono' | 'display';
 }
 
 export interface ActivityLog {
