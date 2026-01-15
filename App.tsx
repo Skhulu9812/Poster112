@@ -14,6 +14,7 @@ import { Permit, ActivityLog, User } from './types';
 import { supabase } from './supabase';
 
 const SESSION_KEY = 'taxipass_session_user';
+const PASSWORD_EXPIRY_DAYS = 30;
 
 const App: React.FC = () => {
   const [isDbLoaded, setIsDbLoaded] = useState(false);
@@ -53,6 +54,19 @@ const App: React.FC = () => {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  // Password Expiry Logic
+  useEffect(() => {
+    if (currentUser) {
+      const lastChanged = new Date(currentUser.passwordLastChanged).getTime();
+      const now = new Date().getTime();
+      const diffDays = (now - lastChanged) / (1000 * 60 * 60 * 24);
+      
+      if (diffDays >= PASSWORD_EXPIRY_DAYS && view !== 'force-password-change') {
+        setView('force-password-change');
+      }
+    }
+  }, [currentUser, view]);
 
   useEffect(() => {
     if (currentUser) localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
@@ -102,6 +116,26 @@ const App: React.FC = () => {
     showNotification('Record updated successfully');
   };
 
+  const handlePasswordUpdate = async (newPass: string) => {
+    if (!currentUser) return;
+    const now = new Date().toISOString();
+    const { error } = await supabase.from('users').update({ 
+      password: newPass, 
+      passwordLastChanged: now 
+    }).eq('id', currentUser.id);
+
+    if (error) {
+      showNotification(`Security update failed: ${error.message}`, "error");
+      return;
+    }
+
+    const updatedUser = { ...currentUser, password: newPass, passwordLastChanged: now };
+    setCurrentUser(updatedUser);
+    addLog('Security Reset', 'auth', 'Password rotation completed');
+    showNotification('Password updated successfully');
+    setView('dashboard');
+  };
+
   const filteredPermits = useMemo(() => {
     if (!searchTerm) return permits;
     const lowerSearch = searchTerm.toLowerCase();
@@ -110,7 +144,20 @@ const App: React.FC = () => {
 
   if (!currentUser) return <Login users={users} onLogin={handleLogin} />;
 
+  // Forced password change takes precedence over all views
+  const isForceChange = view === 'force-password-change';
+
   const renderContent = () => {
+    if (isForceChange) {
+      return (
+        <SecuritySettings 
+          onUpdatePassword={handlePasswordUpdate} 
+          isForced={true} 
+          userRole={currentUser.role} 
+        />
+      );
+    }
+
     switch (view) {
       case 'dashboard': return (
         <Dashboard 
@@ -152,32 +199,30 @@ const App: React.FC = () => {
         setUsers(prev => prev.filter(x => x.id !== id));
         addLog('User Removed', 'auth', `Deleted user ID: ${id}`);
       }} onResetPassword={async (id, p) => {
-        await supabase.from('users').update({password: p}).eq('id', id);
+        const now = new Date(0).toISOString(); // Force expiry for the reset user
+        await supabase.from('users').update({password: p, passwordLastChanged: now}).eq('id', id);
         addLog('Security Reset', 'auth', `Reset credentials for ID: ${id}`);
       }} />;
-      case 'settings': return <SecuritySettings onUpdatePassword={async (p) => {
-        await supabase.from('users').update({password: p}).eq('id', currentUser.id);
-        setCurrentUser({...currentUser, password: p});
-        showNotification('Security profile updated');
-        setView('dashboard');
-      }} userRole={currentUser.role} />;
+      case 'settings': return <SecuritySettings onUpdatePassword={handlePasswordUpdate} userRole={currentUser.role} />;
       default: return <Dashboard permits={permits} activityLogs={activityLogs} />;
     }
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
-      {isMobileMenuOpen && <div className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>}
+    <div className={`flex h-screen overflow-hidden ${isForceChange ? 'bg-slate-900' : 'bg-slate-50'}`}>
+      {!isForceChange && isMobileMenuOpen && <div className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>}
       {notification && (
         <div className="fixed top-6 right-6 z-[100] flex items-center gap-3 px-6 py-4 bg-emerald-900 text-white rounded-2xl shadow-2xl border border-emerald-700 animate-in slide-in-from-top-4">
           <span className="font-black text-xs uppercase tracking-widest">{notification.message}</span>
         </div>
       )}
-      <Sidebar currentView={view} userRole={currentUser.role} userName={currentUser.name} setView={(v) => { setView(v); setIsMobileMenuOpen(false); }} onLogout={handleLogout} className={`fixed inset-y-0 left-0 z-50 lg:static transform transition-transform duration-300 lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`} />
+      {!isForceChange && (
+        <Sidebar currentView={view} userRole={currentUser.role} userName={currentUser.name} setView={(v) => { setView(v); setIsMobileMenuOpen(false); }} onLogout={handleLogout} className={`fixed inset-y-0 left-0 z-50 lg:static transform transition-transform duration-300 lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`} />
+      )}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Navbar searchTerm={searchTerm} onSearchChange={setSearchTerm} onMenuToggle={() => setIsMobileMenuOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-10">
-          <div className="max-w-7xl mx-auto">
+        {!isForceChange && <Navbar searchTerm={searchTerm} onSearchChange={setSearchTerm} onMenuToggle={() => setIsMobileMenuOpen(true)} />}
+        <main className={`flex-1 overflow-y-auto p-4 sm:p-10 ${isForceChange ? 'flex items-center justify-center' : ''}`}>
+          <div className="max-w-7xl mx-auto w-full">
             {!isDbLoaded && !dbError ? <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div></div> : renderContent()}
           </div>
         </main>
