@@ -31,6 +31,11 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
 
   const containerStyle: React.CSSProperties = {
     fontFamily: getFontFamily(permit.permitFontStyle),
+    backgroundColor: permit.discBackgroundColor || '#ffffff',
+    backgroundImage: permit.discBackgroundImage ? `url(${permit.discBackgroundImage})` : 'none',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat'
   };
 
   const handleSavePdf = async () => {
@@ -40,7 +45,7 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
       const canvas = await html2canvas(permitRef.current, { 
         scale: 4, 
         useCORS: true, 
-        backgroundColor: '#ffffff',
+        backgroundColor: permit.discBackgroundColor || '#ffffff',
         logging: false,
         borderRadius: 9999
       });
@@ -66,8 +71,6 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
     }
   };
 
-  const barcodeValue = permit.regNo.replace(/[^a-zA-Z0-9]/g, '');
-
   return (
     <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-700">
       <div className="no-print w-full max-w-lg flex items-center justify-between mb-12">
@@ -88,105 +91,81 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
         <div 
           ref={permitRef} 
           style={containerStyle}
-          className="relative w-[540px] h-[540px] rounded-full border-[12px] border-black flex flex-col items-center p-12 bg-white overflow-hidden"
+          className="relative w-[540px] h-[540px] rounded-full border-[12px] border-black flex flex-col items-center p-8 overflow-hidden"
         >
-          {/* Municipal Watermark */}
-          <div className="absolute inset-0 opacity-[0.04] pointer-events-none flex items-center justify-center p-16 rotate-12">
-             <img src="https://raw.githubusercontent.com/google/genai-toolbox/main/assets/umzimkhulu_logo.png" className="w-full h-auto object-contain scale-125" />
-          </div>
+          {/* Subtle overlay for image readability */}
+          {permit.discBackgroundImage && (
+             <div className="absolute inset-0 bg-white/30 backdrop-blur-[1px] pointer-events-none"></div>
+          )}
 
           {/* Header */}
-          <div className="relative z-10 text-center mt-4">
+          <div className="relative z-10 text-center mt-6">
             <p 
-              style={{ fontSize: `${7 * scale}px` }}
+              style={{ fontSize: `${10 * scale}px` }}
               className="font-[1000] tracking-[0.4em] text-black uppercase leading-none"
             >
               {permit.authorityName || 'UMZIMKHULU MUNICIPALITY'}
             </p>
             <h1 
-              style={{ fontSize: `${18 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }}
-              className="text-black uppercase tracking-[0.25em] mt-2 border-b-2 border-black pb-1"
+              style={{ fontSize: `${24 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }}
+              className="text-black uppercase tracking-[0.3em] mt-3 border-b-[4px] border-black pb-1 inline-block"
             >
-              TRANSPORT PERMIT
+              TAXICAB PERMIT
             </h1>
           </div>
 
-          {/* Association Badge */}
-          <div className="relative z-10 mt-6 bg-white text-black px-8 py-2 rounded-full border-[3px] border-black">
+          {/* Association Name */}
+          <div className="relative z-10 mt-6 text-center">
             <p 
-              style={{ fontSize: `${12 * scale}px` }}
-              className="font-[1000] uppercase tracking-[0.15em]"
+              style={{ fontSize: `${18 * scale}px` }}
+              className="font-[1000] uppercase tracking-[0.15em] text-black"
             >
               {permit.association}
             </p>
           </div>
 
-          {/* Main Registration Area */}
-          <div className="relative z-10 mt-8 text-center px-12 py-4 bg-white rounded-3xl border-[3px] border-black">
+          {/* Registration Number - Size Reduced */}
+          <div className="relative z-10 mt-6 text-center w-full px-12">
             <span 
-              style={{ fontSize: `${9 * scale}px` }}
+              style={{ fontSize: `${12 * scale}px` }}
               className="font-[1000] text-black uppercase tracking-[0.8em] mb-1 block"
             >
               Registration
             </span>
             <h2 
-              style={{ fontSize: `${64 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }}
-              className="text-black leading-none tracking-tighter uppercase"
+              style={{ fontSize: `${52 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }}
+              className="text-black leading-none tracking-tight uppercase"
             >
               {permit.regNo}
             </h2>
           </div>
 
-          {/* Vehicle & Expiry Details */}
-          <div className="relative z-10 mt-8 w-full max-w-[340px] space-y-4">
-            <div className="flex justify-between items-end border-b-[3px] border-black pb-2">
-               <div className="space-y-0.5">
-                  <p 
-                    style={{ fontSize: `${9 * scale}px` }}
-                    className="font-[1000] text-black uppercase tracking-widest"
-                  >
-                    Vehicle Model
-                  </p>
-                  <p 
-                    style={{ fontSize: `${16 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }}
-                    className="text-black uppercase italic leading-none"
-                  >
-                    {permit.make}
-                  </p>
+          {/* Details Row */}
+          <div className="relative z-10 mt-10 w-full flex flex-col items-center">
+            <div className="flex gap-16 text-center">
+               <div className="flex flex-col">
+                  <span style={{ fontSize: `${11 * scale}px` }} className="font-[1000] text-black uppercase tracking-widest">Model</span>
+                  <span style={{ fontSize: `${22 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }} className="text-black uppercase italic leading-none">{permit.make}</span>
                </div>
-               <div className="text-right space-y-0.5">
-                  <p 
-                    style={{ fontSize: `${9 * scale}px` }}
-                    className="font-[1000] text-black uppercase tracking-widest"
-                  >
-                    Valid Until
-                  </p>
-                  <p 
-                    style={{ fontSize: `${16 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }}
-                    className="text-black uppercase leading-none"
-                  >
-                    {permit.expiryDate}
-                  </p>
+               <div className="flex flex-col">
+                  <span style={{ fontSize: `${11 * scale}px` }} className="font-[1000] text-black uppercase tracking-widest">Expiry</span>
+                  <span style={{ fontSize: `${22 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }} className="text-black uppercase leading-none">{permit.expiryDate}</span>
                </div>
             </div>
-            
-            <div 
-              style={{ fontSize: `${11 * scale}px` }}
-              className="flex justify-center font-[1000] text-black uppercase tracking-[0.3em]"
-            >
-               <span>Issued: {permit.dateIssued}</span>
-            </div>
+            <p style={{ fontSize: `${12 * scale}px` }} className="font-black text-black uppercase tracking-tighter mt-6">
+               Issued: {permit.dateIssued}
+            </p>
           </div>
 
           {/* Barcode Section - Bottom */}
-          <div className="relative z-10 mt-auto mb-10 w-full flex flex-col items-center">
-            <div className="p-4 bg-white border-[3px] border-black rounded-2xl w-full flex justify-center">
-              <Barcode value={barcodeValue} width={2.4} height={55} />
+          <div className="relative z-10 mt-auto mb-10 w-full flex justify-center">
+            <div className="px-8 py-3 bg-white/90 rounded-xl">
+              <Barcode value={permit.regNo.replace(/\s/g, '')} width={2.4} height={55} />
             </div>
           </div>
 
-          {/* Inner Dashed Security Ring */}
-          <div className="absolute inset-[14px] rounded-full border-[2px] border-dashed border-black/20 pointer-events-none"></div>
+          {/* Inner Security Ring */}
+          <div className="absolute inset-[16px] rounded-full border-[2px] border-dashed border-black/15 pointer-events-none"></div>
         </div>
       </div>
     </div>

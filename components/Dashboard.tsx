@@ -105,7 +105,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Metrics Row */}
+      {/* Metrics Row - Clearly counts active and expired permits */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Permits</p>
@@ -141,7 +141,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* Compliance Hub & Controls */}
+      {/* Compliance Hub & Controls - Reporting functionality */}
       <div className="flex flex-col xl:flex-row gap-6">
         <div className="flex-1 bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col md:flex-row items-center gap-10">
           <div className="relative w-48 h-48 shrink-0">

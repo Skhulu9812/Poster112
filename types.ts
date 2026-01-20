@@ -30,6 +30,8 @@ export interface Permit {
   authorityFontStyle?: 'normal' | 'italic' | 'bold' | 'bold-italic';
   globalFontScale?: number;
   permitFontStyle?: 'sans' | 'serif' | 'mono' | 'display';
+  discBackgroundColor?: string;
+  discBackgroundImage?: string; // Base64 encoded string
 }
 
 export interface ActivityLog {
