@@ -279,12 +279,12 @@ const App: React.FC = () => {
           userName={currentUser.name} 
           setView={(v) => { setView(v); setIsMobileMenuOpen(false); }} 
           onLogout={handleLogout} 
-          className={`fixed inset-y-0 left-0 z-50 lg:static transform transition-transform duration-300 lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`} 
+          className={`no-print fixed inset-y-0 left-0 z-50 lg:static transform transition-transform duration-300 lg:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`} 
         />
       )}
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {!isForceChange && <Navbar searchTerm={searchTerm} onSearchChange={setSearchTerm} onMenuToggle={() => setIsMobileMenuOpen(true)} />}
+        {!isForceChange && <Navbar searchTerm={searchTerm} onSearchChange={setSearchTerm} onMenuToggle={() => setIsMobileMenuOpen(true)} className="no-print" />}
         <main className={`flex-1 overflow-y-auto p-4 sm:p-10 ${isForceChange ? 'flex items-center justify-center' : ''}`}>
           <div className="max-w-7xl mx-auto w-full">
             {!isDbLoaded && !dbError ? (
