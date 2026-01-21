@@ -46,23 +46,39 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
         scale: 4, 
         useCORS: true, 
         backgroundColor: permit.discBackgroundColor || '#ffffff',
-        logging: false,
-        borderRadius: 9999
+        logging: false
       });
       const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
       
-      const discSize = 90; 
-      const x = (210 - discSize) / 2;
-      const y = (297 - discSize) / 2;
+      // Standard A4 Format (210mm x 297mm)
+      const pdf = new jsPDF({ 
+        orientation: 'portrait', 
+        unit: 'mm', 
+        format: 'a4' 
+      });
       
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      
+      const discSize = 90; // Fixed 90mm diameter
+      const x = (pageWidth - discSize) / 2;
+      const y = (pageHeight - discSize) / 2;
+      
+      // Add the permit disc to the center of the A4 page
       pdf.addImage(imgData, 'PNG', x, y, discSize, discSize);
       
-      pdf.setDrawColor(0, 0, 0);
-      pdf.setLineWidth(0.1);
-      pdf.circle(x + discSize/2, y + discSize/2, discSize/2 + 0.5);
+      // Add a fine circular cutting guide at 90.1mm
+      pdf.setDrawColor(200, 200, 200); 
+      pdf.setLineWidth(0.05);
+      pdf.circle(pageWidth / 2, pageHeight / 2, (discSize / 2) + 0.05);
+      
+      // Add print instructions outside the cut area
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text('UMZIMKHULU MUNICIPALITY - OFFICIAL PERMIT DISC (90MM)', pageWidth / 2, y - 10, { align: 'center' });
+      pdf.text('PRINT AT 100% SCALE ON A4 PAPER', pageWidth / 2, y + discSize + 15, { align: 'center' });
 
-      pdf.save(`Umzimkhulu_Permit_${permit.regNo.replace(/\s/g, '_')}.pdf`);
+      pdf.save(`PERMIT_A4_${permit.regNo.replace(/\s/g, '_')}.pdf`);
     } catch (e) { 
       console.error(e);
       alert('Export failed'); 
@@ -72,7 +88,7 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
   };
 
   return (
-    <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-700">
+    <div className="flex flex-col items-center animate-in fade-in zoom-in-95 duration-700 pb-20">
       <div className="no-print w-full max-w-lg flex items-center justify-between mb-12">
         <button onClick={onBack} className="flex items-center gap-3 px-6 py-3 bg-white text-slate-900 border border-slate-200 rounded-2xl font-black text-xs uppercase tracking-widest shadow-sm hover:bg-slate-50 transition-all">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10 19l-7-7m0 0l7-7m-7 7h18" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -83,90 +99,104 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
           disabled={isGenerating} 
           className="px-8 py-4 bg-black text-white rounded-2xl font-[1000] text-xs uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all flex items-center gap-3"
         >
-          {isGenerating ? 'PROCESSING...' : 'DOWNLOAD 90MM DISC'}
+          {isGenerating ? 'PROCESSING...' : 'DOWNLOAD A4 PERMIT'}
         </button>
       </div>
 
-      <div className="bg-white p-24 rounded-[5rem] shadow-2xl border border-slate-100 flex justify-center w-full max-w-4xl print:p-0 print:shadow-none print:border-none">
+      <div className="bg-white p-16 rounded-[6rem] shadow-2xl border border-slate-100 flex justify-center w-full max-w-2xl print:p-0 print:shadow-none print:border-none">
         <div 
           ref={permitRef} 
           style={containerStyle}
-          className="relative w-[540px] h-[540px] rounded-full border-[12px] border-black flex flex-col items-center p-8 overflow-hidden"
+          className="relative w-[500px] h-[500px] rounded-full border-[14px] border-[#047857] flex flex-col items-center p-10 overflow-hidden aspect-square"
         >
-          {/* Subtle overlay for image readability */}
           {permit.discBackgroundImage && (
-             <div className="absolute inset-0 bg-white/30 backdrop-blur-[1px] pointer-events-none"></div>
+             <div className="absolute inset-0 bg-white/40 backdrop-blur-[0.5px] pointer-events-none"></div>
           )}
 
-          {/* Header */}
-          <div className="relative z-10 text-center mt-6">
+          {/* Top Header Group - Moved down with mt-16 to avoid the border curvature */}
+          <div className="relative z-10 text-center mt-16 flex flex-col items-center w-full">
             <p 
-              style={{ fontSize: `${10 * scale}px` }}
+              style={{ fontSize: `${20 * scale}px` }}
               className="font-[1000] tracking-[0.4em] text-black uppercase leading-none"
             >
-              {permit.authorityName || 'UMZIMKHULU MUNICIPALITY'}
+              SAFE AND SECURITY
             </p>
-            <h1 
-              style={{ fontSize: `${24 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }}
-              className="text-black uppercase tracking-[0.3em] mt-3 border-b-[4px] border-black pb-1 inline-block"
-            >
-              TAXICAB PERMIT
-            </h1>
-          </div>
-
-          {/* Association Name */}
-          <div className="relative z-10 mt-6 text-center">
             <p 
-              style={{ fontSize: `${18 * scale}px` }}
-              className="font-[1000] uppercase tracking-[0.15em] text-black"
+              style={{ fontSize: `${22 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }}
+              className="text-black uppercase tracking-[0.25em] font-black leading-none mt-4"
             >
-              {permit.association}
+              RANK PERMIT 2025/26
             </p>
           </div>
 
-          {/* Registration Number - Size Reduced */}
-          <div className="relative z-10 mt-6 text-center w-full px-12">
-            <span 
-              style={{ fontSize: `${12 * scale}px` }}
-              className="font-[1000] text-black uppercase tracking-[0.8em] mb-1 block"
+          {/* Association Group */}
+          <div className="relative z-10 mt-10 text-center flex flex-col items-center w-full border-t border-black/10 pt-4">
+            <p 
+              style={{ fontSize: `${24 * scale}px` }}
+              className="font-[1000] uppercase tracking-[0.1em] text-black leading-tight"
             >
-              Registration
-            </span>
+              UMZIMKHULU TAXI
+            </p>
+            <p 
+              style={{ fontSize: `${12 * scale}px` }}
+              className="font-black uppercase tracking-[0.4em] text-black/60 mt-1"
+            >
+              ASSOCIATION PERMIT
+            </p>
+          </div>
+
+          {/* Registration Number - Adjusted size */}
+          <div className="relative z-10 mt-4 text-center w-full">
             <h2 
-              style={{ fontSize: `${52 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }}
-              className="text-black leading-none tracking-tight uppercase"
+              style={{ fontSize: `${48 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }}
+              className="text-black leading-none tracking-tighter uppercase font-black"
             >
               {permit.regNo}
             </h2>
           </div>
 
           {/* Details Row */}
-          <div className="relative z-10 mt-10 w-full flex flex-col items-center">
-            <div className="flex gap-16 text-center">
-               <div className="flex flex-col">
-                  <span style={{ fontSize: `${11 * scale}px` }} className="font-[1000] text-black uppercase tracking-widest">Model</span>
-                  <span style={{ fontSize: `${22 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }} className="text-black uppercase italic leading-none">{permit.make}</span>
+          <div className="relative z-10 mt-6 w-full px-10">
+            <div className="flex justify-between items-center text-center py-4 border-y border-black/10">
+               <div className="flex flex-col items-center flex-1">
+                  <span style={{ fontSize: `${8 * scale}px` }} className="font-black text-black/40 uppercase tracking-widest leading-none mb-1">Vehicle</span>
+                  <span style={{ fontSize: `${14 * scale}px` }} className="text-black font-black uppercase italic leading-none">{permit.make}</span>
                </div>
-               <div className="flex flex-col">
-                  <span style={{ fontSize: `${11 * scale}px` }} className="font-[1000] text-black uppercase tracking-widest">Expiry</span>
-                  <span style={{ fontSize: `${22 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }} className="text-black uppercase leading-none">{permit.expiryDate}</span>
+               <div className="w-[1px] h-8 bg-black/10 mx-2"></div>
+               <div className="flex flex-col items-center flex-1">
+                  <span style={{ fontSize: `${8 * scale}px` }} className="font-black text-black/40 uppercase tracking-widest leading-none mb-1">Issued</span>
+                  <span style={{ fontSize: `${14 * scale}px` }} className="text-black font-black uppercase leading-none">{permit.dateIssued}</span>
                </div>
-            </div>
-            <p style={{ fontSize: `${12 * scale}px` }} className="font-black text-black uppercase tracking-tighter mt-6">
-               Issued: {permit.dateIssued}
-            </p>
-          </div>
-
-          {/* Barcode Section - Bottom */}
-          <div className="relative z-10 mt-auto mb-10 w-full flex justify-center">
-            <div className="px-8 py-3 bg-white/90 rounded-xl">
-              <Barcode value={permit.regNo.replace(/\s/g, '')} width={2.4} height={55} />
+               <div className="w-[1px] h-8 bg-black/10 mx-2"></div>
+               <div className="flex flex-col items-center flex-1">
+                  <span style={{ fontSize: `${8 * scale}px` }} className="font-black text-black/40 uppercase tracking-widest leading-none mb-1">Expiry</span>
+                  <span style={{ fontSize: `${14 * scale}px` }} className="text-black font-black uppercase leading-none">{permit.expiryDate}</span>
+               </div>
             </div>
           </div>
 
-          {/* Inner Security Ring */}
-          <div className="absolute inset-[16px] rounded-full border-[2px] border-dashed border-black/15 pointer-events-none"></div>
+          {/* Barcode Footer Only */}
+          <div className="relative z-10 mt-auto mb-10 w-full flex flex-col items-center">
+             <div className="bg-white/20 p-2 rounded-lg">
+                <Barcode value={permit.id.toUpperCase()} width={1.4} height={40} />
+             </div>
+             <p className="text-[7px] font-black text-black/40 uppercase tracking-[0.6em] mt-1">{permit.id.toUpperCase()}</p>
+          </div>
+
+          {/* Circular Safety Border */}
+          <div className="absolute inset-[15px] rounded-full border border-dashed border-[#047857]/20 pointer-events-none"></div>
         </div>
+      </div>
+      
+      <div className="mt-8 flex flex-col items-center gap-2">
+        <p className="text-slate-400 font-black text-[9px] uppercase tracking-[0.3em] flex items-center gap-3">
+          <span className="w-8 h-[1px] bg-slate-200"></span>
+          OFFICIAL ROUND 90MM DISC
+          <span className="w-8 h-[1px] bg-slate-200"></span>
+        </p>
+        <p className="text-slate-300 font-bold text-[8px] uppercase tracking-widest">
+          A4 PRINT READY • CENTERED ALIGNMENT
+        </p>
       </div>
     </div>
   );

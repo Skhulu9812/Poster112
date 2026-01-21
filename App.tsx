@@ -103,6 +103,16 @@ const App: React.FC = () => {
     setView('dashboard');
   };
 
+  const handleRegister = async (u: Omit<User, 'id'>) => {
+    const id = generateId();
+    const { error } = await supabase.from('users').insert([{ ...u, id }]);
+    if (error) throw error;
+    
+    setUsers(prev => [...prev, { ...u, id }]);
+    addLog('Account Created', 'auth', `New user registered: ${u.email} as ${u.role}`);
+    showNotification('Registration successful!');
+  };
+
   const prepareDataForDb = (permit: any) => {
     const { 
       authorityName, authorityFontSize, authorityFontStyle, 
@@ -179,7 +189,7 @@ const App: React.FC = () => {
     );
   }, [permits, searchTerm]);
 
-  if (!currentUser) return <Login users={users} onLogin={handleLogin} />;
+  if (!currentUser) return <Login users={users} onLogin={handleLogin} onRegister={handleRegister} />;
 
   const isForceChange = view === 'force-password-change';
 
@@ -231,7 +241,7 @@ const App: React.FC = () => {
            addLog('Audit Purge', 'delete', 'User cleared system logs');
         }
       }} />;
-      case 'users': return <UserManagement users={users} onCreateUser={async (u) => {
+      case 'users': return <UserManagement currentUser={currentUser} users={users} onCreateUser={async (u) => {
         const id = generateId();
         await supabase.from('users').insert([{...u, id}]);
         setUsers(prev => [...prev, {...u, id}]);

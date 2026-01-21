@@ -4,12 +4,13 @@ import { User, UserRole } from '../types';
 
 interface UserManagementProps {
   users: User[];
+  currentUser: User;
   onCreateUser: (user: Omit<User, 'id'>) => void;
   onDeleteUser: (id: string) => void;
   onResetPassword: (id: string, tempPassword: string) => void;
 }
 
-export const UserManagement: React.FC<UserManagementProps> = ({ users, onCreateUser, onDeleteUser, onResetPassword }) => {
+export const UserManagement: React.FC<UserManagementProps> = ({ users, currentUser, onCreateUser, onDeleteUser, onResetPassword }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tempPasswordModal, setTempPasswordModal] = useState<{ isOpen: boolean; password?: string; userEmail?: string }>({ isOpen: false });
   const [formData, setFormData] = useState<Omit<User, 'id'>>({
@@ -36,6 +37,10 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, onCreateU
   };
 
   const handleDeleteRequest = (userId: string) => {
+    if (userId === currentUser.id) {
+      alert("Security Protocol: You cannot terminate your own administrative account.");
+      return;
+    }
     onDeleteUser(userId);
   };
 
@@ -84,55 +89,67 @@ export const UserManagement: React.FC<UserManagementProps> = ({ users, onCreateU
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-50">
-              {users.map((user) => (
-                <tr key={user.id} className="group hover:bg-slate-50/50 transition-all">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center text-[10px] font-black italic shadow-md">
-                        {user.name.slice(0, 2).toUpperCase()}
+              {users.map((user) => {
+                const isSelf = user.id === currentUser.id;
+                return (
+                  <tr key={user.id} className={`group hover:bg-slate-50/50 transition-all ${isSelf ? 'bg-blue-50/30' : ''}`}>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center text-[10px] font-black italic shadow-md">
+                            {user.name.slice(0, 2).toUpperCase()}
+                          </div>
+                          {isSelf && (
+                            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-sm font-black text-slate-900">
+                            {user.name} {isSelf && <span className="text-[10px] text-emerald-600 ml-1 font-black uppercase">(You)</span>}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-bold">Last Login: {user.lastLogin || 'Never'}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-sm font-black text-slate-900">{user.name}</div>
-                        <div className="text-[10px] text-slate-400 font-bold">Last Login: {user.lastLogin || 'Never'}</div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="text-sm text-slate-600 font-medium">{user.email}</div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black border uppercase tracking-widest shadow-sm ${getRoleBadge(user.role)}`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${user.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                        <span className="text-xs font-bold text-slate-700">{user.status}</span>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="text-sm text-slate-600 font-medium">{user.email}</div>
-                  </td>
-                  <td className="px-8 py-6">
-                    <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black border uppercase tracking-widest shadow-sm ${getRoleBadge(user.role)}`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${user.status === 'Active' ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                      <span className="text-xs font-bold text-slate-700">{user.status}</span>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <div className="flex justify-end gap-2">
-                      <button 
-                        onClick={() => handleResetRequest(user)}
-                        className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm flex items-center gap-2 group/btn"
-                        title="Reset Password & Force Change"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                        <span className="hidden lg:inline text-[10px] font-black uppercase tracking-tighter">Reset</span>
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteRequest(user.id)}
-                        className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm flex items-center gap-2 group/btn"
-                        title="Remove User"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeWidth="2.5" /></svg>
-                        <span className="hidden lg:inline text-[10px] font-black uppercase tracking-tighter">Remove</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-8 py-6 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button 
+                          onClick={() => handleResetRequest(user)}
+                          className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all shadow-sm flex items-center gap-2 group/btn"
+                          title="Reset Password & Force Change"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          <span className="hidden lg:inline text-[10px] font-black uppercase tracking-tighter">Reset</span>
+                        </button>
+                        {!isSelf && (
+                          <button 
+                            onClick={() => handleDeleteRequest(user.id)}
+                            className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-sm flex items-center gap-2 group/btn"
+                            title="Remove User"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeWidth="2.5" /></svg>
+                            <span className="hidden lg:inline text-[10px] font-black uppercase tracking-tighter">Remove</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

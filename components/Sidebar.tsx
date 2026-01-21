@@ -24,7 +24,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setView, onLogout
   const visibleItems = menuItems.filter(item => item.roles.includes(userRole));
 
   return (
-    <div className={`${className} w-72 bg-umz-black h-full text-white flex flex-col shadow-2xl`}>
+    <div className={`${className} w-72 bg-umz-black h-full text-white flex flex-col shadow-2xl transition-all duration-300`}>
       <div className="p-8">
         <div className="flex items-center gap-4 mb-2">
           <div className="w-12 h-12 bg-umz-green rounded-xl flex items-center justify-center font-black text-2xl shadow-lg shadow-emerald-900/40 italic border border-emerald-500/30">U</div>
