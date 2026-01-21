@@ -46,11 +46,11 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
         scale: 4, 
         useCORS: true, 
         backgroundColor: permit.discBackgroundColor || '#ffffff',
-        logging: false
+        logging: false,
+        allowTaint: true
       });
       const imgData = canvas.toDataURL('image/png');
       
-      // Standard A4 Format (210mm x 297mm)
       const pdf = new jsPDF({ 
         orientation: 'portrait', 
         unit: 'mm', 
@@ -60,19 +60,16 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       
-      const discSize = 90; // Fixed 90mm diameter
+      const discSize = 90; 
       const x = (pageWidth - discSize) / 2;
       const y = (pageHeight - discSize) / 2;
       
-      // Add the permit disc to the center of the A4 page
       pdf.addImage(imgData, 'PNG', x, y, discSize, discSize);
       
-      // Add a fine circular cutting guide at 90.1mm
       pdf.setDrawColor(200, 200, 200); 
       pdf.setLineWidth(0.05);
       pdf.circle(pageWidth / 2, pageHeight / 2, (discSize / 2) + 0.05);
       
-      // Add print instructions outside the cut area
       pdf.setFontSize(8);
       pdf.setTextColor(150, 150, 150);
       pdf.text('UMZIMKHULU MUNICIPALITY - OFFICIAL PERMIT DISC (90MM)', pageWidth / 2, y - 10, { align: 'center' });
@@ -113,7 +110,7 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
              <div className="absolute inset-0 bg-white/40 backdrop-blur-[0.5px] pointer-events-none"></div>
           )}
 
-          {/* Top Header Group - Moved down with mt-16 to avoid the border curvature */}
+          {/* Header Group */}
           <div className="relative z-10 text-center mt-16 flex flex-col items-center w-full">
             <p 
               style={{ fontSize: `${20 * scale}px` }}
@@ -145,7 +142,7 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
             </p>
           </div>
 
-          {/* Registration Number - Adjusted size */}
+          {/* Registration Number */}
           <div className="relative z-10 mt-4 text-center w-full">
             <h2 
               style={{ fontSize: `${48 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }}
@@ -175,15 +172,14 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
             </div>
           </div>
 
-          {/* Barcode Footer Only */}
+          {/* Barcode Footer - Optimized with solid background and explicit height */}
           <div className="relative z-10 mt-auto mb-10 w-full flex flex-col items-center">
-             <div className="bg-white/20 p-2 rounded-lg">
-                <Barcode value={permit.id.toUpperCase()} width={1.4} height={40} />
+             <div className="bg-white p-1 rounded-md shadow-sm">
+                <Barcode value={permit.id.toUpperCase()} width={1.4} height={45} />
              </div>
              <p className="text-[7px] font-black text-black/40 uppercase tracking-[0.6em] mt-1">{permit.id.toUpperCase()}</p>
           </div>
 
-          {/* Circular Safety Border */}
           <div className="absolute inset-[15px] rounded-full border border-dashed border-[#047857]/20 pointer-events-none"></div>
         </div>
       </div>
@@ -195,7 +191,7 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
           <span className="w-8 h-[1px] bg-slate-200"></span>
         </p>
         <p className="text-slate-300 font-bold text-[8px] uppercase tracking-widest">
-          A4 PRINT READY • CENTERED ALIGNMENT
+          A4 PRINT READY • HIGH VISIBILITY BARCODE
         </p>
       </div>
     </div>

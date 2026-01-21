@@ -15,24 +15,32 @@ export const Barcode: React.FC<BarcodeProps> = ({
   height = 40, 
   displayValue = false 
 }) => {
-  const svgRef = useRef<SVGSVGElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (svgRef.current && value) {
+    if (canvasRef.current && value) {
       try {
-        JsBarcode(svgRef.current, value, {
+        // Using canvas instead of SVG significantly improves capture reliability with html2canvas
+        JsBarcode(canvasRef.current, value, {
           format: "CODE128",
           width: width,
           height: height,
           displayValue: displayValue,
-          margin: 0,
-          background: "transparent"
+          margin: 10, // Added small margin for better scanning
+          background: "#ffffff", // Solid white background ensures visibility on any disc tint
+          lineColor: "#000000"
         });
       } catch (e) {
-        console.error("Barcode generation failed", e);
+        console.error("Barcode generation failed:", e);
       }
     }
   }, [value, width, height, displayValue]);
 
-  return <svg ref={svgRef}></svg>;
+  return (
+    <canvas 
+      ref={canvasRef} 
+      className="max-w-full h-auto block rounded-sm shadow-sm"
+      style={{ display: 'block' }}
+    />
+  );
 };
