@@ -117,83 +117,84 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
         <div 
           ref={permitRef} 
           style={containerStyle}
-          className="relative w-[500px] h-[500px] rounded-full border-[14px] border-[#047857] flex flex-col items-center p-10 overflow-hidden aspect-square print:w-[90mm] print:h-[90mm] print:border-[3mm] print:fixed print:top-1/2 print:left-1/2 print:-translate-x-1/2 print:-translate-y-1/2"
+          className="relative w-[500px] h-[500px] rounded-full border-[14px] border-[#047857] flex flex-col items-center p-14 overflow-hidden aspect-square print:w-[90mm] print:h-[90mm] print:border-[3mm] print:fixed print:top-1/2 print:left-1/2 print:-translate-x-1/2 print:-translate-y-1/2"
         >
           {permit.discBackgroundImage && (
              <div className="absolute inset-0 bg-white/40 backdrop-blur-[0.5px] pointer-events-none"></div>
           )}
 
-          {/* Header Group */}
-          <div className="relative z-10 text-center mt-16 flex flex-col items-center w-full print:mt-10">
+          {/* Header Group - MOVED UP significantly */}
+          <div className="relative z-10 text-center mt-2 flex flex-col items-center w-full max-w-[85%] print:mt-1">
             <p 
-              style={{ fontSize: `${20 * scale}px` }}
-              className="font-[1000] tracking-[0.4em] text-black uppercase leading-none print:text-[10pt]"
+              style={{ fontSize: `${18 * scale}px` }}
+              className="font-[1000] tracking-[0.3em] text-black uppercase leading-none print:text-[8pt]"
             >
               SAFE AND SECURITY
             </p>
             <p 
-              style={{ fontSize: `${22 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }}
-              className="text-black uppercase tracking-[0.25em] font-black leading-none mt-4 print:mt-2 print:text-[11pt]"
+              style={{ fontSize: `${20 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }}
+              className="text-black uppercase tracking-[0.2em] font-black leading-none mt-2 print:mt-1 print:text-[9pt]"
             >
               RANK PERMIT 2025/26
             </p>
           </div>
 
-          {/* Association Group */}
-          <div className="relative z-10 mt-10 text-center flex flex-col items-center w-full border-t border-black/10 pt-4 print:mt-6 print:pt-2">
+          {/* Association Group - Shifted Up */}
+          <div className="relative z-10 mt-6 text-center flex flex-col items-center w-full max-w-[85%] border-t-2 border-black/10 pt-4 print:mt-3 print:pt-1.5">
             <p 
               style={{ fontSize: `${24 * scale}px` }}
-              className="font-[1000] uppercase tracking-[0.1em] text-black leading-tight print:text-[12pt]"
+              className="font-[1000] uppercase tracking-[0.05em] text-black leading-tight print:text-[11pt]"
             >
               UMZIMKHULU TAXI
             </p>
             <p 
               style={{ fontSize: `${12 * scale}px` }}
-              className="font-black uppercase tracking-[0.4em] text-black/60 mt-1 print:text-[6pt]"
+              className="font-black uppercase tracking-[0.4em] text-black/60 mt-0.5 print:text-[5pt]"
             >
               ASSOCIATION PERMIT
             </p>
           </div>
 
-          {/* Registration Number */}
-          <div className="relative z-10 mt-4 text-center w-full print:mt-2">
+          {/* Registration Number - Shifted Up */}
+          <div className="relative z-10 mt-2 text-center w-full print:mt-0.5">
             <h2 
-              style={{ fontSize: `${48 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }}
-              className="text-black leading-none tracking-tighter uppercase font-black print:text-[24pt]"
+              style={{ fontSize: `${44 * scale}px`, fontWeight: getWeight(permit.permitFontStyle) }}
+              className="text-black leading-none tracking-tighter uppercase font-black print:text-[20pt]"
             >
               {permit.regNo}
             </h2>
           </div>
 
-          {/* Details Row */}
-          <div className="relative z-10 mt-6 w-full px-10 print:mt-4 print:px-4">
-            <div className="flex justify-between items-center text-center py-4 border-y border-black/10 print:py-2">
+          {/* Details Row - Shifted Up */}
+          <div className="relative z-10 mt-4 w-full px-8 print:mt-2 print:px-4">
+            <div className="flex justify-between items-center text-center py-3 border-y-2 border-black/10 print:py-1">
                <div className="flex flex-col items-center flex-1">
-                  <span style={{ fontSize: `${8 * scale}px` }} className="font-black text-black/40 uppercase tracking-widest leading-none mb-1 print:text-[4pt]">Vehicle</span>
-                  <span style={{ fontSize: `${14 * scale}px` }} className="text-black font-black uppercase italic leading-none print:text-[7pt]">{permit.make}</span>
+                  <span style={{ fontSize: `${8 * scale}px` }} className="font-black text-black/50 uppercase tracking-widest leading-none mb-1 print:text-[4pt]">Vehicle</span>
+                  <span style={{ fontSize: `${12 * scale}px` }} className="text-black font-black uppercase italic leading-none print:text-[6pt]">{permit.make}</span>
                </div>
-               <div className="w-[1px] h-8 bg-black/10 mx-2 print:h-4"></div>
+               <div className="w-[1px] h-6 bg-black/10 mx-1 print:h-3"></div>
                <div className="flex flex-col items-center flex-1">
-                  <span style={{ fontSize: `${8 * scale}px` }} className="font-black text-black/40 uppercase tracking-widest leading-none mb-1 print:text-[4pt]">Issued</span>
-                  <span style={{ fontSize: `${14 * scale}px` }} className="text-black font-black uppercase leading-none print:text-[7pt]">{permit.dateIssued}</span>
+                  <span style={{ fontSize: `${8 * scale}px` }} className="font-black text-black/50 uppercase tracking-widest leading-none mb-1 print:text-[4pt]">Issued</span>
+                  <span style={{ fontSize: `${12 * scale}px` }} className="text-black font-black uppercase leading-none print:text-[6pt]">{permit.dateIssued}</span>
                </div>
-               <div className="w-[1px] h-8 bg-black/10 mx-2 print:h-4"></div>
+               <div className="w-[1px] h-6 bg-black/10 mx-1 print:h-3"></div>
                <div className="flex flex-col items-center flex-1">
-                  <span style={{ fontSize: `${8 * scale}px` }} className="font-black text-black/40 uppercase tracking-widest leading-none mb-1 print:text-[4pt]">Expiry</span>
-                  <span style={{ fontSize: `${14 * scale}px` }} className="text-black font-black uppercase leading-none print:text-[7pt]">{permit.expiryDate}</span>
+                  <span style={{ fontSize: `${8 * scale}px` }} className="font-black text-black/50 uppercase tracking-widest leading-none mb-1 print:text-[4pt]">Expiry</span>
+                  <span style={{ fontSize: `${12 * scale}px` }} className="text-black font-black uppercase leading-none print:text-[6pt]">{permit.expiryDate}</span>
                </div>
             </div>
           </div>
 
-          {/* Barcode Footer */}
-          <div className="relative z-10 mt-auto mb-10 w-full flex flex-col items-center print:mb-4">
-             <div className="bg-white p-1 rounded-md shadow-sm print:scale-50">
-                <Barcode value={permit.id.toUpperCase()} width={1.4} height={45} />
+          {/* Barcode Footer - Now has plenty of space and sits in a visible, flatter area */}
+          <div className="relative z-10 mt-auto mb-20 w-full flex flex-col items-center print:mb-16">
+             <div className="bg-white p-1 rounded-md shadow-sm border border-black/10 overflow-hidden print:scale-[0.7] print:origin-center">
+                <Barcode value={permit.id.toUpperCase()} width={1.3} height={45} />
              </div>
-             <p className="text-[7px] font-black text-black/40 uppercase tracking-[0.6em] mt-1 print:text-[4pt]">{permit.id.toUpperCase()}</p>
+             <p style={{ fontSize: `${8 * scale}px` }} className="font-black text-black/40 uppercase tracking-[0.6em] mt-2 print:text-[4pt]">{permit.id.toUpperCase()}</p>
           </div>
 
-          <div className="absolute inset-[15px] rounded-full border border-dashed border-[#047857]/20 pointer-events-none print:inset-[3mm]"></div>
+          {/* Visual guides only on screen */}
+          <div className="absolute inset-[10px] rounded-full border-2 border-dashed border-[#047857]/10 pointer-events-none no-print"></div>
         </div>
       </div>
       
@@ -203,8 +204,8 @@ export const PermitPreview: React.FC<PermitPreviewProps> = ({ permit, onBack }) 
           OFFICIAL ROUND 90MM DISC
           <span className="w-8 h-[1px] bg-slate-200"></span>
         </p>
-        <p className="text-slate-300 font-bold text-[8px] uppercase tracking-widest">
-          A4 PRINT READY • CENTERED ALIGNMENT
+        <p className="text-slate-300 font-bold text-[8px] uppercase tracking-widest text-center max-w-xs">
+          MAXIMIZED BARCODE SCANNABILITY & SPACING
         </p>
       </div>
     </div>
