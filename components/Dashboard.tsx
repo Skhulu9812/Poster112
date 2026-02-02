@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Permit, ActivityLog } from '../types';
+import { Permit, ActivityLog, UserRole } from '../types';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -11,6 +11,7 @@ interface DashboardProps {
   onIssueNew?: () => void;
   onViewRegistry?: () => void;
   onViewLogs?: () => void;
+  userRole: UserRole;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ 
@@ -18,7 +19,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   activityLogs,
   onIssueNew, 
   onViewRegistry,
-  onViewLogs 
+  onViewLogs,
+  userRole
 }) => {
   const activeCount = permits.filter(p => p.status === 'Active').length;
   const expiredCount = permits.filter(p => p.status === 'Expired').length;
@@ -33,12 +35,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
   ];
 
   const quickActions = [
-    { label: 'Issue Permit', icon: 'M12 4v16m8-8H4', onClick: onIssueNew, color: 'bg-emerald-600' },
-    { label: 'Fleet Audit', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', onClick: onViewRegistry, color: 'bg-slate-900' },
-    { label: 'Security Logs', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', onClick: onViewLogs, color: 'bg-blue-600' },
+    { label: 'Issue Permit', icon: 'M12 4v16m8-8H4', onClick: onIssueNew, color: 'bg-emerald-600', roles: ['Super Admin'] },
+    { label: 'Fleet Audit', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2', onClick: onViewRegistry, color: 'bg-slate-900', roles: ['Super Admin', 'Officer', 'Auditor'] },
+    { label: 'Security Logs', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z', onClick: onViewLogs, color: 'bg-blue-600', roles: ['Super Admin', 'Auditor'] },
   ];
 
   const handleExportPDF = () => {
+    if (userRole === 'Auditor') return;
     setIsExporting(true);
     try {
       const doc = new jsPDF();
@@ -82,6 +85,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const handleExportExcel = () => {
+    if (userRole === 'Auditor') return;
     const title = ["Umzimkhulu Local Municipality Taxi Permit Report"];
     const timestamp = [`Generated on: ${new Date().toLocaleString()}`];
     const headers = ["Registration", "Owner", "Association", "Vehicle", "Date Issued", "Expiry Date", "Status"];
@@ -105,7 +109,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Metrics Row - Clearly counts active and expired permits */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Permits</p>
@@ -141,7 +144,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </div>
 
-      {/* Compliance Hub & Controls - Reporting functionality */}
       <div className="flex flex-col xl:flex-row gap-6">
         <div className="flex-1 bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col md:flex-row items-center gap-10">
           <div className="relative w-48 h-48 shrink-0">
@@ -162,29 +164,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
               Fleet Compliance Hub
             </h1>
             <p className="text-slate-400 font-bold text-sm mt-3 leading-relaxed max-w-sm">
-              Real-time synchronization with municipal transport directives. Password expires every 30 days for system integrity.
+              Real-time synchronization with municipal transport directives. Access restricted by role-based protocols.
             </p>
-            <div className="flex flex-wrap gap-3 mt-8">
-               <button 
-                  onClick={handleExportPDF}
-                  className="px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-3 hover:bg-black transition-all"
-               >
-                 <svg className="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeWidth="2.5"/></svg>
-                 Download PDF Report
-               </button>
-               <button 
-                  onClick={handleExportExcel}
-                  className="px-6 py-3 bg-white border-2 border-slate-100 text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-3 hover:border-emerald-200 transition-all"
-               >
-                 <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeWidth="2.5"/></svg>
-                 Registry Excel
-               </button>
-            </div>
+            {userRole !== 'Auditor' && (
+              <div className="flex flex-wrap gap-3 mt-8">
+                 <button 
+                    onClick={handleExportPDF}
+                    className="px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-3 hover:bg-black transition-all"
+                 >
+                   <svg className="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeWidth="2.5"/></svg>
+                   Download PDF Report
+                 </button>
+                 <button 
+                    onClick={handleExportExcel}
+                    className="px-6 py-3 bg-white border-2 border-slate-100 text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-3 hover:border-emerald-200 transition-all"
+                 >
+                   <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeWidth="2.5"/></svg>
+                   Registry Excel
+                 </button>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="w-full xl:w-80 grid grid-cols-1 gap-4">
-          {quickActions.map((action, i) => (
+          {quickActions.filter(a => a.roles.includes(userRole)).map((action, i) => (
             <button 
               key={i} 
               onClick={action.onClick}

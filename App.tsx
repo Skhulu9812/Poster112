@@ -114,6 +114,7 @@ const App: React.FC = () => {
   };
 
   const prepareDataForDb = (permit: any) => {
+    // Strip UI-only and custom branding fields that aren't in the DB schema cache
     const { 
       authorityName, authorityFontSize, authorityFontStyle, 
       globalFontScale, permitFontStyle, discBackgroundColor, discBackgroundImage,
@@ -123,7 +124,10 @@ const App: React.FC = () => {
   };
 
   const handleCreatePermit = async (newPermit: Omit<Permit, 'id' | 'issuedBy'>) => {
-    if (!currentUser) return;
+    if (!currentUser || currentUser.role !== 'Super Admin') {
+      showNotification('Unauthorized: Only Super Admins can issue new permits', 'error');
+      return;
+    }
     const permitWithId = { ...newPermit, id: generateId(), issuedBy: currentUser.id };
     const dbData = prepareDataForDb(permitWithId);
     const { error } = await supabase.from('permits').insert([dbData]);
@@ -138,19 +142,26 @@ const App: React.FC = () => {
   };
 
   const handleEditPermit = async (updatedPermit: Permit) => {
+    if (!currentUser || currentUser.role === 'Auditor') {
+      showNotification('Auditors cannot modify registry records', 'error');
+      return;
+    }
+    
     const dbData = prepareDataForDb(updatedPermit);
     const { error } = await supabase.from('permits').update(dbData).eq('id', updatedPermit.id);
     if (error) { 
       showNotification(`Update failed: ${error.message}`, "error"); 
       return; 
     }
+    
     setPermits(prev => prev.map(p => p.id === updatedPermit.id ? updatedPermit : p));
     addLog('Record Synchronization', 'update', `Updated registry for ${updatedPermit.regNo}`);
     setView('permits');
-    showNotification('Record updated successfully');
+    showNotification('Registry updated successfully');
   };
 
   const handleBulkDelete = async (ids: string[]) => {
+    if (!currentUser || currentUser.role === 'Auditor') return;
     const { error } = await supabase.from('permits').delete().in('id', ids);
     if (error) {
       showNotification(`Bulk deletion failed: ${error.message}`, "error");
@@ -212,6 +223,7 @@ const App: React.FC = () => {
           onIssueNew={() => setView('new-permit')} 
           onViewRegistry={() => setView('permits')}
           onViewLogs={() => setView('activity-log')}
+          userRole={currentUser.role}
         />
       );
       case 'permits': return (
@@ -220,6 +232,7 @@ const App: React.FC = () => {
           onEdit={(p) => { setSelectedPermit(p); setView('edit-permit'); }} 
           onPrint={(p) => { setSelectedPermit(p); addLog('Permit Export', 'export', `Generated disc view for ${p.regNo}`); setView('preview'); }}
           onDelete={async (id) => {
+            if (currentUser.role === 'Auditor') return;
             await supabase.from('permits').delete().eq('id', id);
             setPermits(p => p.filter(x => x.id !== id));
             addLog('Registry Purge', 'delete', `Removed permit ID: ${id}`);
@@ -231,32 +244,38 @@ const App: React.FC = () => {
           currentUser={currentUser}
         />
       );
-      case 'new-permit': return <PermitForm onSubmit={handleCreatePermit} onCancel={() => setView('permits')} />;
-      case 'edit-permit': return selectedPermit ? <PermitForm initialData={selectedPermit} onSubmit={(data) => handleEditPermit({ ...selectedPermit, ...data })} onCancel={() => setView('permits')} /> : null;
+      case 'new-permit': 
+        if (currentUser.role !== 'Super Admin') { setView('dashboard'); return null; }
+        return <PermitForm onSubmit={handleCreatePermit} onCancel={() => setView('permits')} />;
+      case 'edit-permit': 
+        return selectedPermit ? <PermitForm initialData={selectedPermit} userRole={currentUser.role} onSubmit={(data) => handleEditPermit({ ...selectedPermit, ...data })} onCancel={() => setView('permits')} /> : null;
       case 'preview': return selectedPermit ? <PermitPreview permit={selectedPermit} onBack={() => setView('permits')} /> : null;
       case 'activity-log': return <ActivityLogView logs={activityLogs} userRole={currentUser.role} onClearLogs={async () => {
+        if (currentUser.role !== 'Super Admin') return;
         if (confirm('Clear entire audit trail? This action cannot be undone.')) {
            await supabase.from('activity_logs').delete().neq('id', '0');
            setActivityLogs([]);
            addLog('Audit Purge', 'delete', 'User cleared system logs');
         }
       }} />;
-      case 'users': return <UserManagement currentUser={currentUser} users={users} onCreateUser={async (u) => {
-        const id = generateId();
-        await supabase.from('users').insert([{...u, id}]);
-        setUsers(prev => [...prev, {...u, id}]);
-        addLog('User Created', 'auth', `Added user ${u.email}`);
-      }} onDeleteUser={async (id) => {
-        await supabase.from('users').delete().eq('id', id);
-        setUsers(prev => prev.filter(x => x.id !== id));
-        addLog('User Removed', 'auth', `Deleted user ID: ${id}`);
-      }} onResetPassword={async (id, p) => {
-        const now = new Date(0).toISOString(); 
-        await supabase.from('users').update({password: p, passwordLastChanged: now}).eq('id', id);
-        addLog('Security Reset', 'auth', `Forced password reset for ID: ${id}`);
-      }} />;
+      case 'users': 
+        if (currentUser.role !== 'Super Admin') { setView('dashboard'); return null; }
+        return <UserManagement currentUser={currentUser} users={users} onCreateUser={async (u) => {
+          const id = generateId();
+          await supabase.from('users').insert([{...u, id}]);
+          setUsers(prev => [...prev, {...u, id}]);
+          addLog('User Created', 'auth', `Added user ${u.email}`);
+        }} onDeleteUser={async (id) => {
+          await supabase.from('users').delete().eq('id', id);
+          setUsers(prev => prev.filter(x => x.id !== id));
+          addLog('User Removed', 'auth', `Deleted user ID: ${id}`);
+        }} onResetPassword={async (id, p) => {
+          const now = new Date(0).toISOString(); 
+          await supabase.from('users').update({password: p, passwordLastChanged: now}).eq('id', id);
+          addLog('Security Reset', 'auth', `Forced password reset for ID: ${id}`);
+        }} />;
       case 'settings': return <SecuritySettings onUpdatePassword={handlePasswordUpdate} userRole={currentUser.role} />;
-      default: return <Dashboard permits={permits} activityLogs={activityLogs} />;
+      default: return <Dashboard permits={permits} activityLogs={activityLogs} userRole={currentUser.role} />;
     }
   };
 

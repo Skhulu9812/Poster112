@@ -19,7 +19,11 @@ export const PermitList: React.FC<PermitListProps> = ({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Expired' | 'Pending'>('All');
 
+  const isAuditor = currentUser.role === 'Auditor';
+  const isSuperAdmin = currentUser.role === 'Super Admin';
+
   const handleExportCSV = () => {
+    if (isAuditor) return;
     const headers = ["Reg No", "Owner", "Association", "Make", "Expiry", "Status"];
     const rows = permits.map(p => [
       p.regNo, p.ownerName, p.association, p.make, p.expiryDate, p.status
@@ -61,7 +65,7 @@ export const PermitList: React.FC<PermitListProps> = ({
         </div>
         
         <div className="flex flex-wrap items-center gap-4">
-          {selectedIds.length > 0 && (
+          {!isAuditor && selectedIds.length > 0 && (
             <button 
               onClick={() => {
                 if(confirm(`Delete ${selectedIds.length} selected records permanently?`)) {
@@ -88,13 +92,15 @@ export const PermitList: React.FC<PermitListProps> = ({
               </button>
             ))}
           </div>
-          <button 
-            onClick={handleExportCSV}
-            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
-          >
-            <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeWidth="2.5"/></svg>
-            Export Excel
-          </button>
+          {!isAuditor && (
+            <button 
+              onClick={handleExportCSV}
+              className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-slate-50 transition-all shadow-sm"
+            >
+              <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" strokeWidth="2.5"/></svg>
+              Export Excel
+            </button>
+          )}
         </div>
       </div>
 
@@ -109,6 +115,7 @@ export const PermitList: React.FC<PermitListProps> = ({
                     className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                     checked={selectedIds.length === filtered.length && filtered.length > 0}
                     onChange={toggleSelectAll}
+                    disabled={isAuditor}
                   />
                 </th>
                 <th className="px-4 py-6 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Operator & Vehicle</th>
@@ -127,6 +134,7 @@ export const PermitList: React.FC<PermitListProps> = ({
                       className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
                       checked={selectedIds.includes(permit.id)}
                       onChange={() => toggleSelectOne(permit.id)}
+                      disabled={isAuditor}
                     />
                   </td>
                   <td className="px-4 py-6">
@@ -135,7 +143,9 @@ export const PermitList: React.FC<PermitListProps> = ({
                         {permit.regNo.slice(0, 2)}
                       </div>
                       <div>
-                        <p className="text-base font-[1000] text-umz-black tracking-tight">{permit.regNo}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-base font-[1000] text-umz-black tracking-tight">{permit.regNo}</p>
+                        </div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{permit.ownerName}</p>
                       </div>
                     </div>
@@ -158,16 +168,35 @@ export const PermitList: React.FC<PermitListProps> = ({
                   <td className="px-8 py-6 text-right">
                     <div className="flex justify-end gap-2 opacity-100 xl:opacity-0 xl:group-hover:opacity-100 transition-all">
                       <button onClick={() => onPrint(permit)} className="p-3 bg-umz-black text-white rounded-xl shadow-lg hover:scale-110 active:scale-95 transition-all" title="Print Disc"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" strokeWidth="2.5"/></svg></button>
-                      <button onClick={() => onEdit(permit)} className="p-3 bg-white border border-slate-200 text-slate-400 hover:text-umz-black rounded-xl shadow-sm hover:scale-110 active:scale-95 transition-all" title="Edit Permit"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" strokeWidth="2.5"/></svg></button>
+                      
                       <button 
-                        onClick={() => {
-                          if(confirm('Delete this record permanently?')) onDelete(permit.id);
-                        }} 
-                        className="p-3 bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl shadow-sm hover:scale-110 active:scale-95 transition-all"
-                        title="Delete Permit"
+                        onClick={() => onEdit(permit)} 
+                        className={`p-3 rounded-xl shadow-sm hover:scale-110 active:scale-95 transition-all flex items-center gap-2 ${
+                          isAuditor ? 'bg-blue-600 text-white' : 'bg-white border border-slate-200 text-slate-400 hover:text-umz-black'
+                        }`} 
+                        title={isAuditor ? "View Record" : "Edit Permit"}
                       >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeWidth="2.5"/></svg>
+                        {isAuditor ? (
+                          <>
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" strokeWidth="2.5"/></svg>
+                            <span className="text-[10px] font-black uppercase tracking-widest hidden lg:inline">View</span>
+                          </>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" strokeWidth="2.5"/></svg>
+                        )}
                       </button>
+
+                      {!isAuditor && (
+                        <button 
+                          onClick={() => {
+                            if(confirm('Delete this record permanently?')) onDelete(permit.id);
+                          }} 
+                          className="p-3 bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl shadow-sm hover:scale-110 active:scale-95 transition-all"
+                          title="Delete Permit"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeWidth="2.5"/></svg>
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
